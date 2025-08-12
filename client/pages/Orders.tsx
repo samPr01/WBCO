@@ -39,11 +39,11 @@ export default function Orders() {
 
           <div className="flex gap-3">
             <button
-              onClick={() => navigate("/deposits")}
+              onClick={() => navigate("/withdraw")}
               className="flex-1 bg-white/20 backdrop-blur-sm rounded-xl p-3 flex items-center justify-center gap-2 transition-all hover:bg-white/30"
             >
               <Send className="w-4 h-4" />
-              <span className="text-sm font-medium">Transfer</span>
+              <span className="text-sm font-medium">Withdraw</span>
             </button>
             <button
               onClick={() => navigate("/deposits")}

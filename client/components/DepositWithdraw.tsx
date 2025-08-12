@@ -20,9 +20,21 @@ import {
 import { useAccount } from "wagmi";
 import { useChainId } from "wagmi";
 import { toast } from "sonner";
-import { useTransactions } from "@/hooks/useTransactions";
+import { ethers } from "ethers";
+// import { useTransactions } from "@/hooks/useTransactions";
 import { useTokenPrices } from "@/hooks/useTokenPrices";
-import { formatBalance, TOKENS, getTokenInfo, isETH } from "@/lib/contracts";
+import { 
+  formatBalance, 
+  TOKENS, 
+  getTokenInfo, 
+  isETH, 
+  parseEther, 
+  formatEther, 
+  parseTokenAmount,
+  CONTRACT_ADDRESSES,
+  WALLET_BASE_ABI,
+  getERC20Contract
+} from "@/lib/contracts";
 
 export function DepositWithdraw() {
   const { address, isConnected } = useAccount();
@@ -33,19 +45,162 @@ export function DepositWithdraw() {
   const [showHistory, setShowHistory] = useState(false);
   const [transactions, setTransactions] = useState<any[]>([]);
 
-  const {
-    deposit,
-    withdraw,
-    depositToken,
-    withdrawToken,
-    fetchAllBalances,
-    getTransactionHistory,
-    userBalance,
-    contractBalance,
-    tokenBalances,
-    contractTokenBalances,
-    isLoading,
-  } = useTransactions();
+  // const {
+  //   deposit,
+  //   withdraw,
+  //   depositToken,
+  //   withdrawToken,
+  //   fetchAllBalances,
+  //   getTransactionHistory,
+  //   userBalance,
+  //   contractBalance,
+  //   tokenBalances,
+  //   contractTokenBalances,
+  //   isLoading,
+  // } = useTransactions();
+
+  // Real wallet functionality with contract integration
+  const [isLoading, setIsLoading] = useState(false);
+  const [userBalance, setUserBalance] = useState("0");
+  const [contractBalance, setContractBalance] = useState("0");
+  const [tokenBalances, setTokenBalances] = useState<Record<string, string>>({});
+  const [contractTokenBalances, setContractTokenBalances] = useState<Record<string, string>>({});
+
+  // Get contract instance
+  const getContract = async () => {
+    if (!window.ethereum) throw new Error("No wallet connected");
+    const provider = new ethers.BrowserProvider(window.ethereum);
+    const signer = await provider.getSigner();
+    const contractAddress = CONTRACT_ADDRESSES[chainId as keyof typeof CONTRACT_ADDRESSES];
+    if (!contractAddress || contractAddress === "0x0000000000000000000000000000000000000000") {
+      throw new Error("Contract not deployed on this network");
+    }
+    return new ethers.Contract(contractAddress, WALLET_BASE_ABI, signer);
+  };
+
+  const deposit = async (amount: string) => {
+    setIsLoading(true);
+    try {
+      const contract = await getContract();
+      const tx = await contract.deposit({ value: parseEther(amount) });
+      toast.info("Transaction submitted. Waiting for confirmation...");
+      await tx.wait();
+      toast.success(`Successfully deposited ${amount} ETH`);
+      await fetchAllBalances(); // Refresh balances
+    } catch (error: any) {
+      console.error("Deposit error:", error);
+      toast.error(error.message || "Deposit failed. Please try again.");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const withdraw = async (amount: string) => {
+    setIsLoading(true);
+    try {
+      const contract = await getContract();
+      const tx = await contract.withdraw(parseEther(amount));
+      toast.info("Transaction submitted. Waiting for confirmation...");
+      await tx.wait();
+      toast.success(`Successfully withdrew ${amount} ETH`);
+      await fetchAllBalances(); // Refresh balances
+    } catch (error: any) {
+      console.error("Withdrawal error:", error);
+      toast.error(error.message || "Withdrawal failed. Please try again.");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const depositToken = async (token: string, amount: string) => {
+    setIsLoading(true);
+    try {
+      const contract = await getContract();
+      const tokenInfo = getTokenInfo(token, chainId);
+      if (!tokenInfo) throw new Error("Token not supported");
+      
+      // First approve the contract to spend tokens
+      const tokenContract = getERC20Contract(token, await contract.signer);
+      const approveTx = await tokenContract.approve(contract.target, parseTokenAmount(amount, tokenInfo.decimals));
+      await approveTx.wait();
+      
+      // Then deposit tokens
+      const tx = await contract.depositToken(token, parseTokenAmount(amount, tokenInfo.decimals));
+      toast.info("Transaction submitted. Waiting for confirmation...");
+      await tx.wait();
+      toast.success(`Successfully deposited ${amount} ${tokenInfo.symbol}`);
+      await fetchAllBalances(); // Refresh balances
+    } catch (error: any) {
+      console.error("Token deposit error:", error);
+      toast.error(error.message || "Token deposit failed. Please try again.");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const withdrawToken = async (token: string, amount: string) => {
+    setIsLoading(true);
+    try {
+      const contract = await getContract();
+      const tokenInfo = getTokenInfo(token, chainId);
+      if (!tokenInfo) throw new Error("Token not supported");
+      
+      const tx = await contract.withdrawToken(token, parseTokenAmount(amount, tokenInfo.decimals));
+      toast.info("Transaction submitted. Waiting for confirmation...");
+      await tx.wait();
+      toast.success(`Successfully withdrew ${amount} ${tokenInfo.symbol}`);
+      await fetchAllBalances(); // Refresh balances
+    } catch (error: any) {
+      console.error("Token withdrawal error:", error);
+      toast.error(error.message || "Token withdrawal failed. Please try again.");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const fetchAllBalances = async () => {
+    if (!isConnected || !chainId) return;
+    
+    setIsLoading(true);
+    try {
+      const contract = await getContract();
+      
+      // Get ETH balance
+      const ethBalance = await contract.balances(address);
+      setUserBalance(formatEther(ethBalance));
+      
+      // Get contract ETH balance
+      const contractEthBalance = await contract.getContractBalance();
+      setContractBalance(formatEther(contractEthBalance));
+      
+      // Get token balances
+      const chainTokens = TOKENS[chainId as keyof typeof TOKENS];
+      if (chainTokens) {
+        const newTokenBalances: Record<string, string> = {};
+        const newContractTokenBalances: Record<string, string> = {};
+        
+        for (const [symbol, token] of Object.entries(chainTokens)) {
+          const balance = await contract.tokenBalances(address, token.address);
+          const contractBalance = await contract.getContractTokenBalance(token.address);
+          newTokenBalances[token.address] = formatBalance(balance, token.decimals);
+          newContractTokenBalances[token.address] = formatBalance(contractBalance, token.decimals);
+        }
+        
+        setTokenBalances(newTokenBalances);
+        setContractTokenBalances(newContractTokenBalances);
+      }
+    } catch (error: any) {
+      console.error("Fetch balances error:", error);
+      toast.error("Failed to fetch balances");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const getTransactionHistory = async () => {
+    // For now, return empty array - can be enhanced with event logs
+    return [];
+  };
 
   const { getUSDValue, formatUSD } = useTokenPrices();
 

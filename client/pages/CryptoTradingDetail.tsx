@@ -44,7 +44,7 @@ export default function CryptoTradingDetail() {
   const location = useLocation();
   const navigate = useNavigate();
   const { isDemoMode, demoBalance, addTrade } = useDemoTrading();
-  const { getCryptoPriceById, formatPrice, formatMarketCap, formatVolume } = useCryptoPrices();
+  const { getCryptoPriceById, formatPrice: formatCryptoPrice, formatMarketCap, formatVolume } = useCryptoPrices();
 
   const [cryptoData, setCryptoData] = useState<CryptoDetailData | null>(null);
   const [timeframe, setTimeframe] = useState("1Y");
@@ -239,15 +239,7 @@ export default function CryptoTradingDetail() {
     }
   };
 
-  const formatPrice = (price: number) => {
-    if (price < 1) {
-      return `$${price.toFixed(4)}`;
-    } else if (price < 1000) {
-      return `$${price.toFixed(2)}`;
-    } else {
-      return `$${price.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-    }
-  };
+
 
   const getTimeframeData = () => {
     if (!cryptoData) return [];
@@ -309,7 +301,7 @@ export default function CryptoTradingDetail() {
             <div>
               <div className="text-sm text-muted-foreground">Current Price</div>
               <div className="text-3xl font-bold">
-                {formatPrice(cryptoData.currentPrice)}
+                {formatCryptoPrice(cryptoData.currentPrice)}
               </div>
               <div
                 className={`text-sm flex items-center gap-1 ${
@@ -331,14 +323,14 @@ export default function CryptoTradingDetail() {
             <div>
               <div className="text-sm text-muted-foreground">24h High</div>
               <div className="text-lg font-semibold">
-                {formatPrice(cryptoData.high24h)}
+                {formatCryptoPrice(cryptoData.high24h)}
               </div>
             </div>
 
             <div>
               <div className="text-sm text-muted-foreground">24h Low</div>
               <div className="text-lg font-semibold">
-                {formatPrice(cryptoData.low24h)}
+                {formatCryptoPrice(cryptoData.low24h)}
               </div>
             </div>
 

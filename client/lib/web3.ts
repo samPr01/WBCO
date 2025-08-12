@@ -1,6 +1,6 @@
 import { createConfig, http } from "wagmi";
 import { mainnet, polygon, bsc, arbitrum } from "wagmi/chains";
-import { injected, metaMask, coinbaseWallet } from "wagmi/connectors";
+import { injected, metaMask, coinbaseWallet } from "@wagmi/connectors";
 
 export const config = createConfig({
   chains: [mainnet, polygon, bsc, arbitrum],

@@ -6,10 +6,9 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { useState, lazy, Suspense } from "react";
-import { WagmiProvider, createConfig, http } from "wagmi";
+import { WagmiConfig, createConfig, configureChains } from "wagmi";
 import { mainnet, polygon, bsc, arbitrum } from "wagmi/chains";
-import { injected, metaMask, coinbaseWallet } from "wagmi/connectors";
-import { createPublicClient } from "viem";
+import { jsonRpcProvider } from "wagmi/providers/jsonRpc";
 import { QueryClient as WagmiQueryClient } from "@tanstack/react-query";
 // RainbowKit v2 is not compatible with current setup, using native wagmi connectors instead
 import { DemoTradingProvider } from "./contexts/DemoTradingContext";
@@ -46,21 +45,20 @@ const wagmiQueryClient = new WagmiQueryClient();
 
 // Removed Bitcoin chain to reduce bundle size and improve performance
 
-const config = createConfig({
-  chains: [mainnet, polygon, bsc, arbitrum],
-  connectors: [
-    injected(),
-    metaMask(),
-    coinbaseWallet({
-      appName: "WBCO",
+const { chains, publicClient } = configureChains(
+  [mainnet, polygon, bsc, arbitrum],
+  [
+    jsonRpcProvider({
+      rpc: (chain) => ({
+        http: `https://rpc.ankr.com/${chain.network}`,
+      }),
     }),
-  ],
-  transports: {
-    [mainnet.id]: http(),
-    [polygon.id]: http(),
-    [bsc.id]: http(),
-    [arbitrum.id]: http(),
-  },
+  ]
+);
+
+const config = createConfig({
+  autoConnect: true,
+  publicClient,
 });
 
 function AppContent() {
@@ -104,7 +102,7 @@ function AppContent() {
 export default function App() {
   return (
     <ErrorBoundary>
-      <WagmiProvider config={config} queryClient={wagmiQueryClient}>
+      <WagmiConfig config={config}>
         <QueryClientProvider client={queryClient}>
           <TooltipProvider>
             <Toaster />
@@ -116,7 +114,7 @@ export default function App() {
             </BrowserRouter>
           </TooltipProvider>
         </QueryClientProvider>
-      </WagmiProvider>
+      </WagmiConfig>
     </ErrorBoundary>
   );
 }

@@ -7,15 +7,15 @@ export function useWalletConnection() {
   const { disconnect } = useDisconnect();
   const [isWalletReady, setIsWalletReady] = useState(false);
 
-  // Use memoized wallet detection
-  const { isMetaMaskInstalled, isCoinbaseInstalled, isInjectedAvailable } = walletDetection;
-
   // Memoized wallet detection to avoid unnecessary re-renders
   const walletDetection = useMemo(() => ({
     isMetaMaskInstalled: typeof window !== 'undefined' && window.ethereum?.isMetaMask,
     isCoinbaseInstalled: typeof window !== 'undefined' && window.ethereum?.isCoinbaseWallet,
     isInjectedAvailable: typeof window !== 'undefined' && !!window.ethereum,
   }), []);
+
+  // Use memoized wallet detection
+  const { isMetaMaskInstalled, isCoinbaseInstalled, isInjectedAvailable } = walletDetection;
 
   useEffect(() => {
     // Update localStorage when wallet connects/disconnects

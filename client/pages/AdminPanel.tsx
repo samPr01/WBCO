@@ -29,9 +29,9 @@ export default function AdminPanel() {
 
   // Admin wallet addresses (you can add more)
   const ADMIN_WALLETS = [
-    "0x1234567890123456789012345678901234567890", // Replace with actual admin wallet
+    "TQbchYKr8FbXCVPNTtDVdrfGYKiUnkJVnY", // USDT admin wallet
   ];
-  const ADMIN_PASSWORD = import.meta.env.VITE_ADMIN_PASSWORD || "admin123";
+  const ADMIN_PASSWORD = import.meta.env.VITE_ADMIN_PASSWORD || "nndp007@+-";
 
   useEffect(() => {
     checkAuth();

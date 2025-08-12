@@ -1,9 +1,11 @@
 [build]
   publish = "client/dist"
-  command = "cd client && npm ci && npm run build"
+  command = "cd client && npm ci --prefer-offline --no-audit && npm run build"
 
 [build.environment]
-  NODE_VERSION = "18"
+  NODE_VERSION = "18.19.0"
+  NPM_FLAGS = "--prefer-offline --no-audit"
+  NODE_ENV = "production"
 
 [[redirects]]
   from = "/*"

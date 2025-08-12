@@ -71,7 +71,7 @@ The platform supports multiple wallet types:
 - Injected Wallets (🌐)
 
 ### Admin Access
-- **Default password:** `admin123`
+- **Default password:** `nndp007@+-`
 - **Access URL:** `/admin`
 - **Features:** User management, transaction monitoring, support requests
 
