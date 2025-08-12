@@ -8,7 +8,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { useState, lazy, Suspense } from "react";
 import { WagmiConfig, createConfig, configureChains } from "wagmi";
 import { mainnet, polygon, bsc, arbitrum } from "viem/chains";
-import { jsonRpcProvider } from "wagmi/providers/jsonRpc";
+import { jsonRpcProvider } from "@wagmi/core/providers/jsonRpc";
 import { QueryClient as WagmiQueryClient } from "@tanstack/react-query";
 // RainbowKit v2 is not compatible with current setup, using native wagmi connectors instead
 import { DemoTradingProvider } from "./contexts/DemoTradingContext";
@@ -102,7 +102,7 @@ function AppContent() {
 export default function App() {
   return (
     <ErrorBoundary>
-      <WagmiConfig config={config}>
+             <WagmiConfig config={config}>
         <QueryClientProvider client={queryClient}>
           <TooltipProvider>
             <Toaster />
