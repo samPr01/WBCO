@@ -11,8 +11,7 @@ import { mainnet, polygon, bsc, arbitrum } from "wagmi/chains";
 import { injected, metaMask, coinbaseWallet } from "wagmi/connectors";
 import { createPublicClient } from "viem";
 import { QueryClient as WagmiQueryClient } from "@tanstack/react-query";
-import { RainbowKitProvider, getDefaultConfig } from "@rainbow-me/rainbowkit";
-import "@rainbow-me/rainbowkit/styles.css";
+// RainbowKit v2 is not compatible with current setup, using native wagmi connectors instead
 import { DemoTradingProvider } from "./contexts/DemoTradingContext";
 import Index from "./pages/Index";
 import Market from "./pages/Market";
@@ -62,19 +61,23 @@ const bitcoin = {
   },
 } as const;
 
-const config = createConfig(
-  getDefaultConfig({
-    chains: [mainnet, polygon, bsc, arbitrum, bitcoin],
-    transports: {
-      [mainnet.id]: http(),
-      [polygon.id]: http(),
-      [bsc.id]: http(),
-      [arbitrum.id]: http(),
-      [bitcoin.id]: http(),
-    },
-    projectId: "07b02acd712d354bbeacc0d5ef0642f7",
-  })
-);
+const config = createConfig({
+  chains: [mainnet, polygon, bsc, arbitrum, bitcoin],
+  connectors: [
+    injected(),
+    metaMask(),
+    coinbaseWallet({
+      appName: "WBCO",
+    }),
+  ],
+  transports: {
+    [mainnet.id]: http(),
+    [polygon.id]: http(),
+    [bsc.id]: http(),
+    [arbitrum.id]: http(),
+    [bitcoin.id]: http(),
+  },
+});
 
 function AppContent() {
   return (
@@ -113,19 +116,17 @@ export default function App() {
   return (
     <ErrorBoundary>
       <WagmiProvider config={config} queryClient={wagmiQueryClient}>
-        <RainbowKitProvider>
-          <QueryClientProvider client={queryClient}>
-            <TooltipProvider>
-              <Toaster />
-              <Sonner />
-              <BrowserRouter>
-                <DemoTradingProvider>
-                  <AppContent />
-                </DemoTradingProvider>
-              </BrowserRouter>
-            </TooltipProvider>
-          </QueryClientProvider>
-        </RainbowKitProvider>
+        <QueryClientProvider client={queryClient}>
+          <TooltipProvider>
+            <Toaster />
+            <Sonner />
+            <BrowserRouter>
+              <DemoTradingProvider>
+                <AppContent />
+              </DemoTradingProvider>
+            </BrowserRouter>
+          </TooltipProvider>
+        </QueryClientProvider>
       </WagmiProvider>
     </ErrorBoundary>
   );
