@@ -17,6 +17,7 @@ import { useDemoTrading } from "@/contexts/DemoTradingContext";
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
 import { connectWallet, disconnectWallet, getWalletBalance } from "@/lib/walletUtils";
+import { WalletButton } from "@/components/WalletButton";
 
 const navigationItems = [
   { href: "/", icon: Home, label: "Home" },

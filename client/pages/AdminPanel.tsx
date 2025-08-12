@@ -7,11 +7,12 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
-import { ArrowLeft, Search, Eye, MessageSquare, Users, CreditCard, HelpCircle } from "lucide-react";
+import { ArrowLeft, Search, Eye, MessageSquare, Users, CreditCard, HelpCircle, Wallet } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { supabase, User, Transaction, SupportRequest } from "@/lib/supabase";
 import { useAccount } from "wagmi";
+import { AdminWalletManager } from "@/components/AdminWalletManager";
 
 export default function AdminPanel() {
   const navigate = useNavigate();
@@ -174,6 +175,10 @@ export default function AdminPanel() {
           <TabsTrigger value="support" className="flex items-center gap-2">
             <HelpCircle className="w-4 h-4" />
             Support ({pendingSupportRequests.length})
+          </TabsTrigger>
+          <TabsTrigger value="wallets" className="flex items-center gap-2">
+            <Wallet className="w-4 h-4" />
+            Wallet Management
           </TabsTrigger>
         </TabsList>
 
@@ -346,6 +351,10 @@ export default function AdminPanel() {
               </Card>
             ))}
           </div>
+        </TabsContent>
+
+        <TabsContent value="wallets" className="space-y-4">
+          <AdminWalletManager />
         </TabsContent>
       </Tabs>
     </div>

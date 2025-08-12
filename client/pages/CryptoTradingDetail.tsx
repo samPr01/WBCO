@@ -13,11 +13,13 @@ import {
   BarChart3,
   Calendar,
   DollarSign,
+  RefreshCw,
 } from "lucide-react";
 import { toast } from "sonner";
 import { useDemoTrading } from "@/contexts/DemoTradingContext";
 import { CandlestickChart } from "@/components/CandlestickChart";
 import { AdvancedOptionsTrading } from "@/components/AdvancedOptionsTrading";
+import { useCryptoPrices, CryptoPrice } from "@/hooks/useCryptoPrices";
 
 interface PricePoint {
   timestamp: string;
@@ -42,6 +44,7 @@ export default function CryptoTradingDetail() {
   const location = useLocation();
   const navigate = useNavigate();
   const { isDemoMode, demoBalance, addTrade } = useDemoTrading();
+  const { getCryptoPriceById, formatPrice, formatMarketCap, formatVolume } = useCryptoPrices();
 
   const [cryptoData, setCryptoData] = useState<CryptoDetailData | null>(null);
   const [timeframe, setTimeframe] = useState("1Y");
@@ -71,50 +74,97 @@ export default function CryptoTradingDetail() {
   const investmentPlan = cryptoInfo.plan;
 
   useEffect(() => {
-    // Generate 2-year historical data (in production, this would come from an API)
-    const generatePriceHistory = (currentPrice: number): PricePoint[] => {
-      const data: PricePoint[] = [];
-      const now = new Date();
-      const twoYearsAgo = new Date(
-        now.getTime() - 2 * 365 * 24 * 60 * 60 * 1000,
-      );
+    // Try to get real crypto data first
+    const realCrypto = getCryptoPriceById(cryptoId || cryptoInfo.symbol.toLowerCase());
+    
+    if (realCrypto) {
+      // Generate 2-year historical data based on real price
+      const generatePriceHistory = (currentPrice: number): PricePoint[] => {
+        const data: PricePoint[] = [];
+        const now = new Date();
+        const twoYearsAgo = new Date(
+          now.getTime() - 2 * 365 * 24 * 60 * 60 * 1000,
+        );
 
-      let price = currentPrice * 0.3; // Start from 30% of current price 2 years ago
-      const totalDays = 730; // 2 years
+        let price = currentPrice * 0.3; // Start from 30% of current price 2 years ago
+        const totalDays = 730; // 2 years
 
-      for (let i = 0; i < totalDays; i++) {
-        const date = new Date(twoYearsAgo.getTime() + i * 24 * 60 * 60 * 1000);
+        for (let i = 0; i < totalDays; i++) {
+          const date = new Date(twoYearsAgo.getTime() + i * 24 * 60 * 60 * 1000);
 
-        // Simulate realistic price movement with overall upward trend
-        const randomChange = (Math.random() - 0.48) * 0.05; // Slightly positive bias
-        const trend = (i / totalDays) * 0.7; // Overall 70% increase over 2 years
+          // Simulate realistic price movement with overall upward trend
+          const randomChange = (Math.random() - 0.48) * 0.05; // Slightly positive bias
+          const trend = (i / totalDays) * 0.7; // Overall 70% increase over 2 years
 
-        price = price * (1 + randomChange + trend * 0.001);
+          price = price * (1 + randomChange + trend * 0.001);
 
-        data.push({
-          timestamp: date.toISOString().split("T")[0],
-          price: Math.max(0, price),
-          volume: Math.random() * 1000000000,
-        });
-      }
+          data.push({
+            timestamp: date.toISOString().split("T")[0],
+            price: Math.max(0, price),
+            volume: Math.random() * 1000000000,
+          });
+        }
 
-      return data;
-    };
+        return data;
+      };
 
-    const mockData: CryptoDetailData = {
-      symbol: cryptoInfo.symbol,
-      name: cryptoInfo.name,
-      currentPrice: cryptoInfo.price,
-      change24h: (Math.random() - 0.5) * 10,
-      high24h: cryptoInfo.price * 1.05,
-      low24h: cryptoInfo.price * 0.95,
-      volume24h: Math.random() * 1000000000,
-      marketCap: cryptoInfo.price * 19000000, // Approximate for BTC
-      priceHistory: generatePriceHistory(cryptoInfo.price),
-    };
+      const realData: CryptoDetailData = {
+        symbol: realCrypto.symbol.toUpperCase(),
+        name: realCrypto.name,
+        currentPrice: realCrypto.current_price,
+        change24h: realCrypto.price_change_24h,
+        high24h: realCrypto.high_24h,
+        low24h: realCrypto.low_24h,
+        volume24h: realCrypto.total_volume,
+        marketCap: realCrypto.market_cap,
+        priceHistory: generatePriceHistory(realCrypto.current_price),
+      };
 
-    setCryptoData(mockData);
-  }, [cryptoId, cryptoInfo.symbol, cryptoInfo.name, cryptoInfo.price]);
+      setCryptoData(realData);
+    } else {
+      // Fallback to mock data if real data not available
+      const generatePriceHistory = (currentPrice: number): PricePoint[] => {
+        const data: PricePoint[] = [];
+        const now = new Date();
+        const twoYearsAgo = new Date(
+          now.getTime() - 2 * 365 * 24 * 60 * 60 * 1000,
+        );
+
+        let price = currentPrice * 0.3;
+        const totalDays = 730;
+
+        for (let i = 0; i < totalDays; i++) {
+          const date = new Date(twoYearsAgo.getTime() + i * 24 * 60 * 60 * 1000);
+          const randomChange = (Math.random() - 0.48) * 0.05;
+          const trend = (i / totalDays) * 0.7;
+
+          price = price * (1 + randomChange + trend * 0.001);
+
+          data.push({
+            timestamp: date.toISOString().split("T")[0],
+            price: Math.max(0, price),
+            volume: Math.random() * 1000000000,
+          });
+        }
+
+        return data;
+      };
+
+      const mockData: CryptoDetailData = {
+        symbol: cryptoInfo.symbol,
+        name: cryptoInfo.name,
+        currentPrice: cryptoInfo.price,
+        change24h: (Math.random() - 0.5) * 10,
+        high24h: cryptoInfo.price * 1.05,
+        low24h: cryptoInfo.price * 0.95,
+        volume24h: Math.random() * 1000000000,
+        marketCap: cryptoInfo.price * 19000000,
+        priceHistory: generatePriceHistory(cryptoInfo.price),
+      };
+
+      setCryptoData(mockData);
+    }
+  }, [cryptoId, cryptoInfo.symbol, cryptoInfo.name, cryptoInfo.price, getCryptoPriceById]);
 
   const handleTrade = async (prediction: "UP" | "DOWN") => {
     // Check wallet connection first

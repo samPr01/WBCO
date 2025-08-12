@@ -6,7 +6,7 @@ import {
   ReactNode,
 } from "react";
 import { apiClient } from "@/lib/api";
-import { User } from "@shared/api";
+import { User } from "@/lib/types";
 
 interface AuthContextType {
   user: User | null;

@@ -151,23 +151,6 @@ export default function Settings() {
             <span className="text-muted-foreground">›</span>
           </button>
 
-          <button
-            onClick={() => navigate("/admin")}
-            className="w-full bg-gradient-to-r from-gradient-start to-gradient-end text-white rounded-xl p-4 border border-primary/20 flex items-center justify-between hover:opacity-90 transition-opacity"
-          >
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-white/20 rounded-lg flex items-center justify-center">
-                <Shield className="w-5 h-5" />
-              </div>
-              <div className="text-left">
-                <div className="font-medium">Admin Panel</div>
-                <div className="text-sm text-white/80">
-                  Manage wallet addresses
-                </div>
-              </div>
-            </div>
-            <span className="text-white/80">›</span>
-          </button>
         </div>
       </div>
     </div>

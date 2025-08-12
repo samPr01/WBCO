@@ -2,29 +2,20 @@ import { ArrowDownRight, Send, TrendingUp, TrendingDown } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useDemoTrading } from "@/contexts/DemoTradingContext";
 import { useState, useEffect } from "react";
+import { useWalletConnection } from "@/hooks/useWalletConnection";
 
 export function BalanceCard() {
   const navigate = useNavigate();
   const { isDemoMode, demoBalance: demoBal } = useDemoTrading();
+  const { isConnected, address } = useWalletConnection();
 
   // State for P&L and ROI calculations
   const [todaysEarnings, setTodaysEarnings] = useState(0);
   const [roi, setRoi] = useState(0);
   const [initialBalance] = useState(isDemoMode ? 10000 : 0);
-  const [walletConnected, setWalletConnected] = useState(false);
 
-  // Check wallet connection status
-  useEffect(() => {
-    const checkConnection = () => {
-      const savedConnection = localStorage.getItem("walletConnected");
-      setWalletConnected(savedConnection === "true");
-    };
-
-    checkConnection();
-    // Listen for wallet connection changes
-    const interval = setInterval(checkConnection, 1000);
-    return () => clearInterval(interval);
-  }, []);
+  // Use isConnected from the hook instead of local state
+  const walletConnected = isConnected && !!address;
 
   // Show balance based on wallet connection and demo mode
   const displayBalance = !walletConnected
@@ -77,7 +68,11 @@ export function BalanceCard() {
           </div>
           <div className="text-right">
             <div className="text-xs text-white/60">
-              Today, {new Date().toLocaleDateString()}
+              Today, {new Date().toLocaleDateString('en-US', { 
+                month: 'numeric', 
+                day: 'numeric', 
+                year: 'numeric' 
+              })}
             </div>
           </div>
         </div>
@@ -88,10 +83,7 @@ export function BalanceCard() {
             <div className="text-sm text-white/60 mt-1 font-mono">
               {!walletConnected
                 ? "Connect wallet to view address"
-                : localStorage.getItem("walletAddress")?.slice(0, 6) +
-                    "..." +
-                    localStorage.getItem("walletAddress")?.slice(-4) ||
-                  demoAddress}
+                : address?.slice(0, 6) + "..." + address?.slice(-4) || demoAddress}
             </div>
           </div>
 

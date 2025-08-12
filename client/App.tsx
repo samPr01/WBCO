@@ -5,7 +5,7 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
-import { useState } from "react";
+import { useState, lazy, Suspense } from "react";
 import { WagmiProvider, createConfig, http } from "wagmi";
 import { mainnet, polygon, bsc, arbitrum } from "wagmi/chains";
 import { injected, metaMask, coinbaseWallet } from "wagmi/connectors";
@@ -24,13 +24,14 @@ import PersonalVerification from "./pages/PersonalVerification";
 import CreditScore from "./pages/CreditScore";
 import OnlineSupport from "./pages/OnlineSupport";
 import Trading from "./pages/Trading";
-import AdminPanel from "./pages/AdminPanel";
 import CryptoTradingDetail from "./pages/CryptoTradingDetail";
 import UploadProof from "./pages/UploadProof";
 import { Navigation, DesktopNavigation } from "./components/Navigation";
-import { DemoWallet } from "./components/DemoWallet";
-import { ConnectWallet } from "./components/ConnectWallet";
 import { ErrorBoundary } from "./components/ErrorBoundary";
+import { LoadingSpinner } from "./components/LoadingSpinner";
+
+// Lazy load admin components
+const AdminPanel = lazy(() => import("./pages/AdminPanel"));
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -43,26 +44,10 @@ const queryClient = new QueryClient({
 
 const wagmiQueryClient = new WagmiQueryClient();
 
-// Define Bitcoin chain
-const bitcoin = {
-  id: 8332, // Changed from 0 to avoid conflicts
-  name: 'Bitcoin',
-  nativeCurrency: {
-    decimals: 8,
-    name: 'Bitcoin',
-    symbol: 'BTC',
-  },
-  rpcUrls: {
-    default: { http: ['https://bitcoin.rainbow.me'] },
-    public: { http: ['https://bitcoin.rainbow.me'] },
-  },
-  blockExplorers: {
-    default: { name: 'Blockstream', url: 'https://blockstream.info' },
-  },
-} as const;
+// Removed Bitcoin chain to reduce bundle size and improve performance
 
 const config = createConfig({
-  chains: [mainnet, polygon, bsc, arbitrum, bitcoin],
+  chains: [mainnet, polygon, bsc, arbitrum],
   connectors: [
     injected(),
     metaMask(),
@@ -75,7 +60,6 @@ const config = createConfig({
     [polygon.id]: http(),
     [bsc.id]: http(),
     [arbitrum.id]: http(),
-    [bitcoin.id]: http(),
   },
 });
 
@@ -83,8 +67,6 @@ function AppContent() {
   return (
     <div className="min-h-screen bg-background text-foreground">
       <DesktopNavigation />
-      <ConnectWallet />
-      <DemoWallet />
       <main className="pb-16 md:pb-0 md:pt-16">
         <Routes>
           <Route path="/" element={<Index />} />
@@ -103,7 +85,14 @@ function AppContent() {
           />
           <Route path="/credit-score" element={<CreditScore />} />
           <Route path="/online-support" element={<OnlineSupport />} />
-          <Route path="/admin" element={<AdminPanel />} />
+          <Route 
+            path="/admin" 
+            element={
+              <Suspense fallback={<LoadingSpinner size="lg" text="Loading Admin Panel..." />}>
+                <AdminPanel />
+              </Suspense>
+            } 
+          />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </main>

@@ -19,7 +19,7 @@ import {
   Investment,
   WatchlistResponse,
   WatchlistItem,
-} from "@shared/api";
+} from "@/lib/types";
 
 class ApiClient {
   private baseUrl: string;
