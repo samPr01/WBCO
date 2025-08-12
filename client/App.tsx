@@ -30,6 +30,7 @@ import UploadProof from "./pages/UploadProof";
 import { Navigation, DesktopNavigation } from "./components/Navigation";
 import { DemoWallet } from "./components/DemoWallet";
 import { ConnectWallet } from "./components/ConnectWallet";
+import { ErrorBoundary } from "./components/ErrorBoundary";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -44,7 +45,7 @@ const wagmiQueryClient = new WagmiQueryClient();
 
 // Define Bitcoin chain
 const bitcoin = {
-  id: 0,
+  id: 8332, // Changed from 0 to avoid conflicts
   name: 'Bitcoin',
   nativeCurrency: {
     decimals: 8,
@@ -108,20 +109,22 @@ function AppContent() {
 
 export default function App() {
   return (
-    <WagmiProvider config={config} queryClient={wagmiQueryClient}>
-      <RainbowKitProvider>
-        <QueryClientProvider client={queryClient}>
-          <TooltipProvider>
-            <Toaster />
-            <Sonner />
-            <BrowserRouter>
-              <DemoTradingProvider>
-                <AppContent />
-              </DemoTradingProvider>
-            </BrowserRouter>
-          </TooltipProvider>
-        </QueryClientProvider>
-      </RainbowKitProvider>
-    </WagmiProvider>
+    <ErrorBoundary>
+      <WagmiProvider config={config} queryClient={wagmiQueryClient}>
+        <RainbowKitProvider>
+          <QueryClientProvider client={queryClient}>
+            <TooltipProvider>
+              <Toaster />
+              <Sonner />
+              <BrowserRouter>
+                <DemoTradingProvider>
+                  <AppContent />
+                </DemoTradingProvider>
+              </BrowserRouter>
+            </TooltipProvider>
+          </QueryClientProvider>
+        </RainbowKitProvider>
+      </WagmiProvider>
+    </ErrorBoundary>
   );
 }
