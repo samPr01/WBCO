@@ -8,6 +8,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { useState } from "react";
 import { WagmiProvider, createConfig, http } from "wagmi";
 import { mainnet, polygon, bsc, arbitrum } from "wagmi/chains";
+import { injected, metaMask, coinbaseWallet } from "wagmi/connectors";
 import { createPublicClient } from "viem";
 import { QueryClient as WagmiQueryClient } from "@tanstack/react-query";
 import { RainbowKitProvider, getDefaultConfig } from "@rainbow-me/rainbowkit";
@@ -71,6 +72,7 @@ const config = createConfig(
       [arbitrum.id]: http(),
       [bitcoin.id]: http(),
     },
+    projectId: "07b02acd712d354bbeacc0d5ef0642f7",
   })
 );
 
