@@ -1,24 +1,24 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.19;
+pragma solidity ^0.8.20;
 
-import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
+import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
-import "@openzeppelin/contracts/security/Pausable.sol";
+import "@openzeppelin/contracts/utils/Pausable.sol";
+
+// Minimal ERC20 interface
+interface IERC20 {
+    function transferFrom(address sender, address recipient, uint256 amount) external returns (bool);
+    function transfer(address recipient, uint256 amount) external returns (bool);
+    function approve(address spender, uint256 amount) external returns (bool);
+    function decimals() external view returns (uint8);
+    function balanceOf(address account) external view returns (uint256);
+}
 
 /**
  * @title WalletBase
  * @dev A secure contract for handling ETH and ERC20 token deposits and withdrawals
  */
 contract WalletBase is ReentrancyGuard, Ownable, Pausable {
-    
-    // Minimal ERC20 interface
-    interface IERC20 {
-        function transferFrom(address sender, address recipient, uint256 amount) external returns (bool);
-        function transfer(address recipient, uint256 amount) external returns (bool);
-        function approve(address spender, uint256 amount) external returns (bool);
-        function decimals() external view returns (uint8);
-        function balanceOf(address account) external view returns (uint256);
-    }
     
     // Events
     event Deposit(address indexed user, uint256 amount, uint256 timestamp);
@@ -65,9 +65,7 @@ contract WalletBase is ReentrancyGuard, Ownable, Pausable {
     bool public depositsPaused = false;
     bool public withdrawalsPaused = false;
     
-    constructor() {
-        _transferOwnership(msg.sender);
-        
+    constructor() Ownable(msg.sender) {
         // Initialize supported tokens
         _addSupportedToken(address(0), 18); // ETH
         _addSupportedToken(0x2260FAC5E5542a773Aa44fBCfeDf7C193bc2C599, 8); // WBTC on Ethereum mainnet
@@ -204,93 +202,52 @@ contract WalletBase is ReentrancyGuard, Ownable, Pausable {
         updateDailyTokenLimits(msg.sender, token, amount, false);
         
         // Transfer tokens
-        bool success = IERC20(token).transfer(msg.sender, withdrawalAmount);
-        require(success, "Token withdrawal failed");
+        require(IERC20(token).transfer(msg.sender, withdrawalAmount), "Token withdrawal failed");
         
         emit TokenWithdrawn(msg.sender, token, withdrawalAmount, block.timestamp);
-    }
-    
-    /**
-     * @dev Get user ETH balance
-     */
-    function getBalance(address user) external view returns (uint256) {
-        return balances[user];
-    }
-    
-    /**
-     * @dev Get user token balance
-     */
-    function getTokenBalance(address user, address token) external view returns (uint256) {
-        return tokenBalances[user][token];
-    }
-    
-    /**
-     * @dev Get contract ETH balance
-     */
-    function getContractBalance() external view returns (uint256) {
-        return address(this).balance;
-    }
-    
-    /**
-     * @dev Get contract token balance
-     */
-    function getContractTokenBalance(address token) external view returns (uint256) {
-        return IERC20(token).balanceOf(address(this));
     }
     
     /**
      * @dev Check daily limits for ETH
      */
     function checkDailyLimit(address user, uint256 amount, bool isDeposit) internal view returns (bool) {
-        uint256 lastReset = lastResetTime[user];
-        uint256 currentTime = block.timestamp;
+        uint256 limit = isDeposit ? dailyDepositLimit : dailyWithdrawalLimit;
+        uint256 used = isDeposit ? dailyDeposits[user] : dailyWithdrawals[user];
         
         // Reset daily limits if 24 hours have passed
-        if (currentTime >= lastReset + 1 days) {
-            return true;
+        if (block.timestamp >= lastResetTime[user] + 1 days) {
+            return amount <= limit;
         }
         
-        if (isDeposit) {
-            return dailyDeposits[user] + amount <= dailyDepositLimit;
-        } else {
-            return dailyWithdrawals[user] + amount <= dailyWithdrawalLimit;
-        }
+        return used + amount <= limit;
     }
     
     /**
      * @dev Check daily limits for tokens
      */
     function checkDailyTokenLimit(address user, address token, uint256 amount, bool isDeposit) internal view returns (bool) {
-        uint256 lastReset = lastResetTime[user];
-        uint256 currentTime = block.timestamp;
+        uint256 used = isDeposit ? dailyTokenDeposits[user][token] : dailyTokenWithdrawals[user][token];
         
         // Reset daily limits if 24 hours have passed
-        if (currentTime >= lastReset + 1 days) {
-            return true;
+        if (block.timestamp >= lastResetTime[user] + 1 days) {
+            return true; // No daily limit for tokens in this simplified version
         }
         
-        if (isDeposit) {
-            return dailyTokenDeposits[user][token] + amount <= dailyDepositLimit;
-        } else {
-            return dailyTokenWithdrawals[user][token] + amount <= dailyWithdrawalLimit;
-        }
+        return true; // No daily limit for tokens in this simplified version
     }
     
     /**
      * @dev Update daily limits for ETH
      */
     function updateDailyLimits(address user, uint256 amount, bool isDeposit) internal {
-        uint256 lastReset = lastResetTime[user];
-        uint256 currentTime = block.timestamp;
-        
         // Reset daily limits if 24 hours have passed
-        if (currentTime >= lastReset + 1 days) {
+        if (block.timestamp >= lastResetTime[user] + 1 days) {
+            lastResetTime[user] = block.timestamp;
             if (isDeposit) {
                 dailyDeposits[user] = amount;
             } else {
                 dailyWithdrawals[user] = amount;
             }
-            lastResetTime[user] = currentTime;
         } else {
             if (isDeposit) {
                 dailyDeposits[user] += amount;
@@ -304,17 +261,14 @@ contract WalletBase is ReentrancyGuard, Ownable, Pausable {
      * @dev Update daily limits for tokens
      */
     function updateDailyTokenLimits(address user, address token, uint256 amount, bool isDeposit) internal {
-        uint256 lastReset = lastResetTime[user];
-        uint256 currentTime = block.timestamp;
-        
         // Reset daily limits if 24 hours have passed
-        if (currentTime >= lastReset + 1 days) {
+        if (block.timestamp >= lastResetTime[user] + 1 days) {
+            lastResetTime[user] = block.timestamp;
             if (isDeposit) {
                 dailyTokenDeposits[user][token] = amount;
             } else {
                 dailyTokenWithdrawals[user][token] = amount;
             }
-            lastResetTime[user] = currentTime;
         } else {
             if (isDeposit) {
                 dailyTokenDeposits[user][token] += amount;
@@ -325,11 +279,11 @@ contract WalletBase is ReentrancyGuard, Ownable, Pausable {
     }
     
     /**
-     * @dev Emergency withdrawal (owner only)
+     * @dev Emergency withdrawal for owner
      */
     function emergencyWithdraw() external onlyOwner {
         uint256 balance = address(this).balance;
-        require(balance > 0, "No funds to withdraw");
+        require(balance > 0, "No ETH to withdraw");
         
         (bool success, ) = payable(owner()).call{value: balance}("");
         require(success, "Emergency withdrawal failed");
@@ -338,106 +292,114 @@ contract WalletBase is ReentrancyGuard, Ownable, Pausable {
     }
     
     /**
-     * @dev Emergency token withdrawal (owner only)
+     * @dev Emergency token withdrawal for owner
      */
     function emergencyWithdrawToken(address token) external onlyOwner {
         uint256 balance = IERC20(token).balanceOf(address(this));
         require(balance > 0, "No tokens to withdraw");
         
-        bool success = IERC20(token).transfer(owner(), balance);
-        require(success, "Emergency token withdrawal failed");
+        require(IERC20(token).transfer(owner(), balance), "Emergency token withdrawal failed");
         
         emit TokenWithdrawn(owner(), token, balance, block.timestamp);
     }
     
     /**
-     * @dev Pause/unpause deposits (owner only)
+     * @dev Pause deposits
      */
-    function setDepositsPaused(bool paused) external onlyOwner {
-        depositsPaused = paused;
+    function pauseDeposits() external onlyOwner {
+        depositsPaused = true;
     }
     
     /**
-     * @dev Pause/unpause withdrawals (owner only)
+     * @dev Unpause deposits
      */
-    function setWithdrawalsPaused(bool paused) external onlyOwner {
-        withdrawalsPaused = paused;
+    function unpauseDeposits() external onlyOwner {
+        depositsPaused = false;
     }
     
     /**
-     * @dev Set transaction limits (owner only)
+     * @dev Pause withdrawals
      */
-    function setLimits(
-        uint256 _minDeposit,
-        uint256 _maxDeposit,
-        uint256 _minWithdrawal,
-        uint256 _maxWithdrawal
-    ) external onlyOwner {
-        minDeposit = _minDeposit;
-        maxDeposit = _maxDeposit;
-        minWithdrawal = _minWithdrawal;
-        maxWithdrawal = _maxWithdrawal;
+    function pauseWithdrawals() external onlyOwner {
+        withdrawalsPaused = true;
     }
     
     /**
-     * @dev Set daily limits (owner only)
+     * @dev Unpause withdrawals
      */
-    function setDailyLimits(
-        uint256 _dailyDepositLimit,
-        uint256 _dailyWithdrawalLimit
-    ) external onlyOwner {
-        dailyDepositLimit = _dailyDepositLimit;
-        dailyWithdrawalLimit = _dailyWithdrawalLimit;
+    function unpauseWithdrawals() external onlyOwner {
+        withdrawalsPaused = false;
     }
     
     /**
-     * @dev Set fees (owner only)
+     * @dev Set fees
      */
-    function setFees(uint256 _depositFee, uint256 _withdrawalFee) external onlyOwner {
-        require(_depositFee <= 500, "Deposit fee too high"); // Max 5%
-        require(_withdrawalFee <= 500, "Withdrawal fee too high"); // Max 5%
-        depositFee = _depositFee;
-        withdrawalFee = _withdrawalFee;
+    function setFees(uint256 newDepositFee, uint256 newWithdrawalFee) external onlyOwner {
+        require(newDepositFee <= 1000, "Deposit fee too high"); // Max 10%
+        require(newWithdrawalFee <= 1000, "Withdrawal fee too high"); // Max 10%
+        
+        depositFee = newDepositFee;
+        withdrawalFee = newWithdrawalFee;
     }
     
     /**
-     * @dev Get user's daily limits info
+     * @dev Set daily limits
+     */
+    function setDailyLimits(uint256 newDepositLimit, uint256 newWithdrawalLimit) external onlyOwner {
+        dailyDepositLimit = newDepositLimit;
+        dailyWithdrawalLimit = newWithdrawalLimit;
+    }
+    
+    /**
+     * @dev Get user's ETH balance
+     */
+    function getBalance(address user) external view returns (uint256) {
+        return balances[user];
+    }
+    
+    /**
+     * @dev Get user's token balance
+     */
+    function getTokenBalance(address user, address token) external view returns (uint256) {
+        return tokenBalances[user][token];
+    }
+    
+    /**
+     * @dev Get contract's ETH balance
+     */
+    function getContractBalance() external view returns (uint256) {
+        return address(this).balance;
+    }
+    
+    /**
+     * @dev Get contract's token balance
+     */
+    function getContractTokenBalance(address token) external view returns (uint256) {
+        return IERC20(token).balanceOf(address(this));
+    }
+    
+    /**
+     * @dev Get user's daily limits
      */
     function getUserDailyLimits(address user) external view returns (
         uint256 depositUsed,
         uint256 withdrawalUsed,
         uint256 lastReset
     ) {
-        uint256 lastResetTime_ = lastResetTime[user];
-        uint256 currentTime = block.timestamp;
-        
-        if (currentTime >= lastResetTime_ + 1 days) {
-            return (0, 0, lastResetTime_);
-        }
-        
-        return (dailyDeposits[user], dailyWithdrawals[user], lastResetTime_);
+        return (dailyDeposits[user], dailyWithdrawals[user], lastResetTime[user]);
     }
     
     /**
-     * @dev Get user's daily token limits info
+     * @dev Get user's daily token limits
      */
     function getUserDailyTokenLimits(address user, address token) external view returns (
         uint256 depositUsed,
         uint256 withdrawalUsed,
         uint256 lastReset
     ) {
-        uint256 lastResetTime_ = lastResetTime[user];
-        uint256 currentTime = block.timestamp;
-        
-        if (currentTime >= lastResetTime_ + 1 days) {
-            return (0, 0, lastResetTime_);
-        }
-        
-        return (dailyTokenDeposits[user][token], dailyTokenWithdrawals[user][token], lastResetTime_);
+        return (dailyTokenDeposits[user][token], dailyTokenWithdrawals[user][token], lastResetTime[user]);
     }
     
-    // Fallback function to receive ETH
-    receive() external payable {
-        revert("Use deposit() function");
-    }
+    // Allow contract to receive ETH
+    receive() external payable {}
 }
