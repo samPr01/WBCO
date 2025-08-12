@@ -7,7 +7,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { useState, lazy, Suspense } from "react";
 import { WagmiConfig, createConfig, configureChains } from "wagmi";
-import { mainnet, polygon, bsc, arbitrum } from "wagmi/chains";
+import { mainnet, polygon, bsc, arbitrum } from "viem/chains";
 import { jsonRpcProvider } from "wagmi/providers/jsonRpc";
 import { QueryClient as WagmiQueryClient } from "@tanstack/react-query";
 // RainbowKit v2 is not compatible with current setup, using native wagmi connectors instead

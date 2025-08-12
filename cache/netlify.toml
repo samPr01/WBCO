@@ -1,11 +1,12 @@
 [build]
   publish = "client/dist"
-  command = "cd client && npm ci --prefer-offline --no-audit && npm run build"
+  command = "cd client && npm ci --prefer-offline --no-audit --legacy-peer-deps && npm run build"
 
 [build.environment]
-  NODE_VERSION = "18.19.0"
-  NPM_FLAGS = "--prefer-offline --no-audit"
+  NODE_VERSION = "20.11.0"
+  NPM_FLAGS = "--prefer-offline --no-audit --legacy-peer-deps"
   NODE_ENV = "production"
+  NPM_CONFIG_LEGACY_PEER_DEPS = "true"
 
 [[redirects]]
   from = "/*"
