@@ -156,3 +156,4 @@ export function isWalletConnected(): boolean {
 export function getConnectedWalletAddress(): string | null {
   return localStorage.getItem("walletAddress");
 }
+

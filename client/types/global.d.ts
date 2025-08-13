@@ -8,3 +8,4 @@ interface Window {
     removeListener: (eventName: string, handler: (...args: any[]) => void) => void;
   };
 }
+

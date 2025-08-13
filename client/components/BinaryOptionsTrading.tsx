@@ -390,3 +390,4 @@ function getTimeframeMs(timeframe: string): number {
   };
   return timeMap[timeframe] || 60 * 1000; // Default to 60s
 }
+

@@ -143,3 +143,4 @@ export function Top15CryptoChart() {
     </Card>
   );
 }
+

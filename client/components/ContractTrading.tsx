@@ -394,3 +394,4 @@ export function ContractTrading() {
     </div>
   );
 }
+

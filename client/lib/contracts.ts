@@ -306,3 +306,4 @@ export function useWalletBaseContract(provider: ethers.BrowserProvider | null, c
     return null;
   }
 }
+

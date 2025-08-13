@@ -254,3 +254,4 @@ export function DemoWallet({ onConnect, onDisconnect }: DemoWalletProps) {
     </div>
   );
 }
+

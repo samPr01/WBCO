@@ -1,35 +1,25 @@
 // @ts-nocheck
-import { createConfig, configureChains } from "wagmi";
+import { createConfig, http } from "wagmi";
 import { mainnet, polygon, bsc, arbitrum } from "wagmi/chains";
-import { publicProvider } from "wagmi/providers/public";
 import { MetaMaskConnector } from "wagmi/connectors/metaMask";
 import { CoinbaseWalletConnector } from "wagmi/connectors/coinbaseWallet";
 import { InjectedConnector } from "wagmi/connectors/injected";
 
-const { chains, publicClient, webSocketPublicClient } = configureChains(
-  [mainnet, polygon, bsc, arbitrum],
-  [publicProvider()]
-);
+const chains = [mainnet, polygon, bsc, arbitrum];
 
 export const config = createConfig({
+  chains,
+  transports: {
+    [mainnet.id]:  http("https://rpc.ankr.com/eth"),
+    [polygon.id]:  http("https://rpc.ankr.com/polygon"),
+    [bsc.id]:      http("https://rpc.ankr.com/bsc"),
+    [arbitrum.id]: http("https://rpc.ankr.com/arbitrum"),
+  },
   autoConnect: true,
-  publicClient,
-  webSocketPublicClient,
   connectors: [
     new MetaMaskConnector({ chains }),
-    new CoinbaseWalletConnector({
-      chains,
-      options: {
-        appName: "WalletBase",
-      },
-    }),
-    new InjectedConnector({
-      chains,
-      options: {
-        name: "Injected",
-        shimDisconnect: true,
-      },
-    }),
+    new CoinbaseWalletConnector({ chains, options: { appName: "WalletBase" } }),
+    new InjectedConnector({ chains, options: { name: "Injected", shimDisconnect: true } }),
   ],
 });
 
@@ -96,3 +86,4 @@ export const getNetworkName = (chainId: number) => {
     "Unknown Network"
   );
 };
+

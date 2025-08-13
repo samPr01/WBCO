@@ -62,12 +62,48 @@ export function BTCDeposit() {
   const [isGenerating, setIsGenerating] = useState(false);
   const [activeTab, setActiveTab] = useState("deposit");
 
-  const API_BASE = process.env.VITE_API_URL || 'http://localhost:3001/api/btc';
+  const API_BASE = import.meta.env.VITE_BTC_API_URL || 'http://localhost:3001/api/btc';
+  
+  // Expected chain ID for BTC operations (mainnet)
+  const EXPECTED_CHAIN_ID = 1;
+
+  // Check network compatibility
+  const checkNetwork = async () => {
+    if (!window.ethereum) return false;
+    
+    try {
+      const provider = new ethers.BrowserProvider ? 
+        new ethers.BrowserProvider(window.ethereum || {}) : 
+        new ethers.BrowserProvider(window.ethereum);
+      
+      const network = await provider.getNetwork();
+      if (network.chainId !== EXPECTED_CHAIN_ID) {
+        alert("Please switch to the correct network.");
+        return false;
+      }
+      return true;
+    } catch (error) {
+      console.error('Error checking network:', error);
+      return false;
+    }
+  };
 
   // Generate BTC address for connected wallet
   const generateBTCAddress = async () => {
     if (!address) {
       toast.error("Please connect your wallet first");
+      return;
+    }
+
+    // Check for MetaMask
+    if (!window.ethereum) {
+      alert("MetaMask not detected");
+      return;
+    }
+
+    // Check network compatibility
+    const isCorrectNetwork = await checkNetwork();
+    if (!isCorrectNetwork) {
       return;
     }
 
@@ -79,6 +115,10 @@ export function BTCDeposit() {
         body: JSON.stringify({ ethAddress: address })
       });
 
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
       const data = await response.json();
       
       if (data.success) {
@@ -89,7 +129,7 @@ export function BTCDeposit() {
       }
     } catch (error) {
       console.error('Error generating BTC address:', error);
-      toast.error("Failed to generate BTC address");
+      toast.error("Failed to generate BTC address. Please check your connection and try again.");
     } finally {
       setIsGenerating(false);
     }
@@ -102,9 +142,26 @@ export function BTCDeposit() {
       return;
     }
 
+    // Check for MetaMask
+    if (!window.ethereum) {
+      alert("MetaMask not detected");
+      return;
+    }
+
+    // Check network compatibility
+    const isCorrectNetwork = await checkNetwork();
+    if (!isCorrectNetwork) {
+      return;
+    }
+
     setIsLoading(true);
     try {
       const response = await fetch(`${API_BASE}/check-deposit/${address}`);
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
       const data = await response.json();
       
       if (data.success) {
@@ -115,7 +172,7 @@ export function BTCDeposit() {
       }
     } catch (error) {
       console.error('Error checking BTC balance:', error);
-      toast.error("Failed to check BTC balance");
+      toast.error("Failed to check BTC balance. Please check your connection and try again.");
     } finally {
       setIsLoading(false);
     }
@@ -125,8 +182,25 @@ export function BTCDeposit() {
   const getTransactionHistory = async () => {
     if (!address) return;
 
+    // Check for MetaMask
+    if (!window.ethereum) {
+      alert("MetaMask not detected");
+      return;
+    }
+
+    // Check network compatibility
+    const isCorrectNetwork = await checkNetwork();
+    if (!isCorrectNetwork) {
+      return;
+    }
+
     try {
       const response = await fetch(`${API_BASE}/transactions/${address}`);
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
       const data = await response.json();
       
       if (data.success) {
@@ -134,6 +208,7 @@ export function BTCDeposit() {
       }
     } catch (error) {
       console.error('Error getting transaction history:', error);
+      toast.error("Failed to get transaction history. Please check your connection and try again.");
     }
   };
 
@@ -155,9 +230,20 @@ export function BTCDeposit() {
   // Load initial data
   useEffect(() => {
     if (isConnected && address) {
+      // Check for MetaMask
+      if (!window.ethereum) {
+        alert("MetaMask not detected");
+        return;
+      }
+
       // Try to get existing BTC address
       fetch(`${API_BASE}/address/${address}`)
-        .then(response => response.json())
+        .then(response => {
+          if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+          }
+          return response.json();
+        })
         .then(data => {
           if (data.success) {
             setBtcAddressData(data.data);
@@ -167,6 +253,7 @@ export function BTCDeposit() {
         })
         .catch(error => {
           console.error('Error loading BTC address:', error);
+          toast.error("Failed to load BTC address. Please check your connection and try again.");
         });
     }
   }, [isConnected, address]);
@@ -388,3 +475,4 @@ export function BTCDeposit() {
     </div>
   );
 }
+

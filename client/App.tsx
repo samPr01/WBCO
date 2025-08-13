@@ -7,9 +7,8 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { lazy, Suspense } from "react";
-import { WagmiConfig, createConfig, configureChains } from "wagmi";
-import { mainnet, polygon, bsc, arbitrum } from "viem/chains";
-import { jsonRpcProvider } from "wagmi/providers/jsonRpc";
+import { WagmiConfig, createConfig, http } from "wagmi";
+import { mainnet, polygon, bsc, arbitrum } from "wagmi/chains";
 // RainbowKit v2 is not compatible with current setup, using native wagmi connectors instead
 import { DemoTradingProvider } from "./contexts/DemoTradingContext";
 import Index from "./pages/Index";
@@ -45,20 +44,16 @@ const queryClient = new QueryClient({
 
 // Removed Bitcoin chain to reduce bundle size and improve performance
 
-const { publicClient } = configureChains(
-  [mainnet, polygon, bsc, arbitrum],
-  [
-    jsonRpcProvider({
-      rpc: (chain) => ({
-        http: `https://rpc.ankr.com/${chain.network}`,
-      }),
-    }),
-  ]
-);
-
 const config = createConfig({
+  chains: [mainnet, polygon, bsc, arbitrum],
+  transports: {
+    [mainnet.id]:  http("https://rpc.ankr.com/eth"),
+    [polygon.id]:  http("https://rpc.ankr.com/polygon"),
+    [bsc.id]:      http("https://rpc.ankr.com/bsc"),
+    [arbitrum.id]: http("https://rpc.ankr.com/arbitrum"),
+  },
   autoConnect: true,
-  publicClient,
+  ssr: true,
 });
 
 function AppContent() {
@@ -118,3 +113,4 @@ export default function App() {
     </ErrorBoundary>
   );
 }
+

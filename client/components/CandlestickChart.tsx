@@ -331,3 +331,4 @@ export function CandlestickChart({
     </div>
   );
 }
+

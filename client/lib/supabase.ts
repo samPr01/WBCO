@@ -36,3 +36,4 @@ export interface SupportRequest {
 
 // Helper function to generate user ID
 export const generateUserId = () => Math.random().toString(36).substring(2, 7).toUpperCase();
+

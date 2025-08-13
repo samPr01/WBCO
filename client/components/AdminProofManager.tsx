@@ -394,3 +394,4 @@ export function AdminProofManager({ isAdmin = true }: AdminProofManagerProps) {
     </div>
   );
 }
+

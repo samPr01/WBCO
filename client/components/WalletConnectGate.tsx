@@ -427,3 +427,4 @@ declare global {
     coin98?: any;
   }
 }
+

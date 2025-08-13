@@ -223,3 +223,4 @@ export const ADMIN_CONFIG: AdminWalletConfig = {
     webhook: "https://your-admin-panel.com/webhook/deposits", // Replace with your webhook URL
   },
 };
+

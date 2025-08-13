@@ -272,3 +272,4 @@ export function AdvancedOptionsTrading({
     </div>
   );
 }
+

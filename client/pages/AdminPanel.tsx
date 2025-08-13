@@ -370,3 +370,4 @@ export default function AdminPanel() {
     </div>
   );
 }
+

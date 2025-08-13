@@ -26,12 +26,48 @@ const BTCWithdraw: React.FC<BTCWithdrawProps> = ({ className = '' }) => {
   const [isGenerating, setIsGenerating] = useState(false);
   const [recentWithdrawals, setRecentWithdrawals] = useState<WithdrawalData[]>([]);
 
-  const API_BASE = 'http://localhost:3001/api/btc';
+  const API_BASE = (import.meta.env.VITE_BTC_API_URL || 'http://localhost:3001/api/btc');
+  
+  // Expected chain ID for BTC operations (mainnet)
+  const EXPECTED_CHAIN_ID = 1;
+
+  // Check network compatibility
+  const checkNetwork = async () => {
+    if (!window.ethereum) return false;
+    
+    try {
+      const provider = new ethers.BrowserProvider ? 
+        new ethers.BrowserProvider(window.ethereum || {}) : 
+        new ethers.BrowserProvider(window.ethereum);
+      
+      const network = await provider.getNetwork();
+      if (network.chainId !== EXPECTED_CHAIN_ID) {
+        alert("Please switch to the correct network.");
+        return false;
+      }
+      return true;
+    } catch (error) {
+      console.error('Error checking network:', error);
+      return false;
+    }
+  };
 
   // Generate BTC address for the connected ETH wallet
   const generateBTCAddress = async () => {
     if (!ethAddress) {
       toast.error('Please connect your wallet first');
+      return;
+    }
+
+    // Check for MetaMask
+    if (!window.ethereum) {
+      alert("MetaMask not detected");
+      return;
+    }
+
+    // Check network compatibility
+    const isCorrectNetwork = await checkNetwork();
+    if (!isCorrectNetwork) {
       return;
     }
 
@@ -43,6 +79,10 @@ const BTCWithdraw: React.FC<BTCWithdrawProps> = ({ className = '' }) => {
         body: JSON.stringify({ ethAddress })
       });
 
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
       const data = await response.json();
       if (data.success) {
         setBtcAddress(data.data.btcAddress);
@@ -53,7 +93,7 @@ const BTCWithdraw: React.FC<BTCWithdrawProps> = ({ className = '' }) => {
       }
     } catch (error) {
       console.error('Error generating BTC address:', error);
-      toast.error('Failed to generate BTC address');
+      toast.error('Failed to generate BTC address. Please check your connection and try again.');
     } finally {
       setIsGenerating(false);
     }
@@ -63,14 +103,32 @@ const BTCWithdraw: React.FC<BTCWithdrawProps> = ({ className = '' }) => {
   const checkBalance = async () => {
     if (!ethAddress) return;
 
+    // Check for MetaMask
+    if (!window.ethereum) {
+      alert("MetaMask not detected");
+      return;
+    }
+
+    // Check network compatibility
+    const isCorrectNetwork = await checkNetwork();
+    if (!isCorrectNetwork) {
+      return;
+    }
+
     try {
       const response = await fetch(`${API_BASE}/check-deposit/${ethAddress}`);
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
       const data = await response.json();
       if (data.success) {
         setCurrentBalance(data.data.balance);
       }
     } catch (error) {
       console.error('Error checking balance:', error);
+      toast.error("Failed to check balance. Please check your connection and try again.");
     }
   };
 
@@ -91,6 +149,18 @@ const BTCWithdraw: React.FC<BTCWithdrawProps> = ({ className = '' }) => {
       return;
     }
 
+    // Check for MetaMask
+    if (!window.ethereum) {
+      alert("MetaMask not detected");
+      return;
+    }
+
+    // Check network compatibility
+    const isCorrectNetwork = await checkNetwork();
+    if (!isCorrectNetwork) {
+      return;
+    }
+
     setIsLoading(true);
     try {
       const response = await fetch(`${API_BASE}/withdraw`, {
@@ -102,6 +172,10 @@ const BTCWithdraw: React.FC<BTCWithdrawProps> = ({ className = '' }) => {
           amount: parseFloat(withdrawAmount)
         })
       });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
 
       const data = await response.json();
       if (data.success) {
@@ -116,7 +190,7 @@ const BTCWithdraw: React.FC<BTCWithdrawProps> = ({ className = '' }) => {
       }
     } catch (error) {
       console.error('Error withdrawing BTC:', error);
-      toast.error('Withdrawal failed. Please try again.');
+      toast.error('Withdrawal failed. Please check your connection and try again.');
     } finally {
       setIsLoading(false);
     }
@@ -311,3 +385,4 @@ const BTCWithdraw: React.FC<BTCWithdrawProps> = ({ className = '' }) => {
 };
 
 export default BTCWithdraw;
+

@@ -82,3 +82,4 @@ const App = () => (
 
 // Use demo app if Web3 fails, otherwise use full Web3 app
 createRoot(document.getElementById("root")!).render(<App />);
+

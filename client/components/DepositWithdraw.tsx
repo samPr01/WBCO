@@ -24,6 +24,10 @@ import { useChainId } from "wagmi";
 import { toast } from "sonner";
 import { ethers } from "ethers";
 
+// Version-compatible BigNumber handling
+const parseUnits = ethers.parseUnits || ethers.parseUnits;
+const formatUnits = ethers.formatUnits || ethers.formatUnits;
+
 import { 
   formatBalance, 
   TOKENS, 
@@ -74,8 +78,17 @@ export function DepositWithdraw() {
   // Get contract instance
   const getContract = async () => {
     if (!window.ethereum) throw new Error("No wallet connected");
-    const provider = new ethers.BrowserProvider(window.ethereum);
-    const signer = await provider.getSigner();
+    
+    // Version-compatible provider creation
+    const provider = new ethers.BrowserProvider ? 
+      new ethers.BrowserProvider(window.ethereum || {}) : 
+      new ethers.BrowserProvider(window.ethereum);
+    
+    // Version-compatible signer handling
+    const signer = provider.getSigner ? 
+      await provider.getSigner() : 
+      await provider.getSigner(0);
+    
     const contractAddress = CONTRACT_ADDRESSES[chainId as keyof typeof CONTRACT_ADDRESSES];
     if (!contractAddress || contractAddress === "0x0000000000000000000000000000000000000000") {
       throw new Error("Contract not deployed on this network");
@@ -91,7 +104,10 @@ export function DepositWithdraw() {
       setIsLoading(true);
       
       // Fetch ETH balance
-      const provider = new ethers.BrowserProvider(window.ethereum);
+      // Version-compatible provider creation
+      const provider = new ethers.BrowserProvider ? 
+        new ethers.BrowserProvider(window.ethereum || {}) : 
+        new ethers.BrowserProvider(window.ethereum);
       const ethBalance = await provider.getBalance(address);
       setUserBalance(formatEther(ethBalance));
       
@@ -738,3 +754,4 @@ export function DepositWithdraw() {
     </div>
   );
 }
+

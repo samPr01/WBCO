@@ -34,12 +34,48 @@ const BTCWallet: React.FC<BTCWalletProps> = ({ ethAddress, className = '' }) => 
   const [recentWithdrawals, setRecentWithdrawals] = useState<WithdrawalData[]>([]);
   const [showQR, setShowQR] = useState(false);
 
-  const API_BASE = 'http://localhost:3001/api/btc';
+  const API_BASE = (import.meta.env.VITE_BTC_API_URL || 'http://localhost:3001/api/btc');
+  
+  // Expected chain ID for BTC operations (mainnet)
+  const EXPECTED_CHAIN_ID = 1;
+
+  // Check network compatibility
+  const checkNetwork = async () => {
+    if (!window.ethereum) return false;
+    
+    try {
+      const provider = new ethers.BrowserProvider ? 
+        new ethers.BrowserProvider(window.ethereum || {}) : 
+        new ethers.BrowserProvider(window.ethereum);
+      
+      const network = await provider.getNetwork();
+      if (network.chainId !== EXPECTED_CHAIN_ID) {
+        alert("Please switch to the correct network.");
+        return false;
+      }
+      return true;
+    } catch (error) {
+      console.error('Error checking network:', error);
+      return false;
+    }
+  };
 
   // Generate BTC address for the ETH wallet
   const generateBTCAddress = async () => {
     if (!ethAddress) {
       toast.error('No Ethereum address provided');
+      return;
+    }
+
+    // Check for MetaMask
+    if (!window.ethereum) {
+      alert("MetaMask not detected");
+      return;
+    }
+
+    // Check network compatibility
+    const isCorrectNetwork = await checkNetwork();
+    if (!isCorrectNetwork) {
       return;
     }
 
@@ -50,6 +86,10 @@ const BTCWallet: React.FC<BTCWalletProps> = ({ ethAddress, className = '' }) => 
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ ethAddress })
       });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
 
       const data = await response.json();
       if (data.success) {
@@ -65,7 +105,7 @@ const BTCWallet: React.FC<BTCWalletProps> = ({ ethAddress, className = '' }) => 
       }
     } catch (error) {
       console.error('Error generating BTC address:', error);
-      toast.error('Failed to generate BTC address');
+      toast.error('Failed to generate BTC address. Please check your connection and try again.');
     } finally {
       setIsGenerating(false);
     }
@@ -75,12 +115,29 @@ const BTCWallet: React.FC<BTCWalletProps> = ({ ethAddress, className = '' }) => 
   const fetchBTCData = async () => {
     if (!ethAddress) return;
 
+    // Check for MetaMask
+    if (!window.ethereum) {
+      alert("MetaMask not detected");
+      return;
+    }
+
+    // Check network compatibility
+    const isCorrectNetwork = await checkNetwork();
+    if (!isCorrectNetwork) {
+      return;
+    }
+
     setIsLoading(true);
     try {
       const [addressResponse, balanceResponse] = await Promise.all([
         fetch(`${API_BASE}/address/${ethAddress}`),
         fetch(`${API_BASE}/check-deposit/${ethAddress}`)
       ]);
+
+      // Check response status
+      if (!addressResponse.ok || !balanceResponse.ok) {
+        throw new Error(`HTTP error! status: ${addressResponse.status} / ${balanceResponse.status}`);
+      }
 
       const addressData = await addressResponse.json();
       const balanceData = await balanceResponse.json();
@@ -100,7 +157,7 @@ const BTCWallet: React.FC<BTCWalletProps> = ({ ethAddress, className = '' }) => 
       }
     } catch (error) {
       console.error('Error fetching BTC data:', error);
-      toast.error('Failed to fetch BTC data');
+      toast.error('Failed to fetch BTC data. Please check your connection and try again.');
     } finally {
       setIsLoading(false);
     }
@@ -123,6 +180,18 @@ const BTCWallet: React.FC<BTCWalletProps> = ({ ethAddress, className = '' }) => 
       return;
     }
 
+    // Check for MetaMask
+    if (!window.ethereum) {
+      alert("MetaMask not detected");
+      return;
+    }
+
+    // Check network compatibility
+    const isCorrectNetwork = await checkNetwork();
+    if (!isCorrectNetwork) {
+      return;
+    }
+
     setIsWithdrawing(true);
     try {
       const response = await fetch(`${API_BASE}/withdraw`, {
@@ -134,6 +203,10 @@ const BTCWallet: React.FC<BTCWalletProps> = ({ ethAddress, className = '' }) => 
           amount: parseFloat(withdrawAmount)
         })
       });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
 
       const data = await response.json();
       if (data.success) {
@@ -156,7 +229,7 @@ const BTCWallet: React.FC<BTCWalletProps> = ({ ethAddress, className = '' }) => 
       }
     } catch (error) {
       console.error('Error withdrawing BTC:', error);
-      toast.error('Withdrawal failed. Please try again.');
+      toast.error('Withdrawal failed. Please check your connection and try again.');
     } finally {
       setIsWithdrawing(false);
     }
@@ -422,3 +495,4 @@ const BTCWallet: React.FC<BTCWalletProps> = ({ ethAddress, className = '' }) => 
 };
 
 export default BTCWallet;
+
