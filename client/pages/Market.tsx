@@ -3,7 +3,7 @@ import { useState } from "react";
 import { WatchlistManager } from "@/components/WatchlistManager";
 import { LiveCryptoChart } from "@/components/LiveCryptoChart";
 
-import { LiveCoinWatchWidget } from "@/components/LiveCoinWatchWidget";
+import { EnhancedCryptoChart } from "@/components/EnhancedCryptoChart";
 import { Star, BarChart3, TrendingUp } from "lucide-react";
 
 export default function Market() {
@@ -63,9 +63,9 @@ export default function Market() {
               <h2 className="text-xl font-semibold">Live Crypto Charts</h2>
             </div>
             <p className="text-muted-foreground mb-6">
-              Real-time cryptocurrency prices and market data powered by Live Coin Watch.
+              Real-time cryptocurrency prices and market data with clickable trading features.
             </p>
-            <LiveCoinWatchWidget />
+            <EnhancedCryptoChart />
           </div>
         )}
 
@@ -76,9 +76,9 @@ export default function Market() {
               <h2 className="text-xl font-semibold">Live Crypto Charts</h2>
             </div>
             <p className="text-muted-foreground mb-6">
-              Real-time cryptocurrency prices and market data powered by Live Coin Watch.
+              Real-time cryptocurrency prices and market data with clickable trading features.
             </p>
-            <LiveCoinWatchWidget />
+            <EnhancedCryptoChart />
           </div>
         )}
 

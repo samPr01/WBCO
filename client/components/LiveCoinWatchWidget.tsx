@@ -134,7 +134,7 @@ export function LiveCoinWatchWidget() {
          lcw-d-code="true" 
          lcw-d-icon="true" 
          lcw-color-tx="#ffffff" 
-         lcw-color-bg="#1f2434" 
+         lcw-color-bg="#000000" 
          lcw-border-w="0"
          lcw-d-logo="false"
          title="Click to view live crypto prices"
@@ -155,16 +155,26 @@ export function LiveCoinWatchWidget() {
          
          /* Custom styling to match our UI */
          .livecoinwatch-widget-3 {
-           background: transparent !important;
-           border: 1px solid hsl(var(--border)) !important;
+           background: #000000 !important;
+           border: 1px solid #374151 !important;
            border-radius: 12px !important;
          }
          
          /* Hide any remaining branding elements */
          .livecoinwatch-widget-3 [class*="logo"],
          .livecoinwatch-widget-3 [class*="brand"],
-         .livecoinwatch-widget-3 [class*="powered"] {
+         .livecoinwatch-widget-3 [class*="powered"],
+         .livecoinwatch-widget-3 [class*="lcw-logo"],
+         .livecoinwatch-widget-3 [class*="lcw-brand"],
+         .livecoinwatch-widget-3 [class*="lcw-powered"],
+         .livecoinwatch-widget-3 [class*="lcw-header"],
+         .livecoinwatch-widget-3 [class*="lcw-title"] {
            display: none !important;
+         }
+         
+         /* Hide iframe branding */
+         .livecoinwatch-widget-3 iframe {
+           background: #000000 !important;
          }
          
          /* Make crypto symbols clickable */

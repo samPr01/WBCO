@@ -4,8 +4,8 @@
   "description": "BTC deposit API for WBCO platform",
   "main": "server.js",
   "scripts": {
-    "start": "node server.js",
-    "dev": "nodemon server.js",
+    "start": "node combinedServer.js",
+    "dev": "nodemon combinedServer.js",
     "test": "jest",
     "monitor": "node walletMonitor.js",
     "trading": "node tradingAPI.js"
