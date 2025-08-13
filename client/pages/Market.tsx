@@ -2,7 +2,7 @@
 import { useState } from "react";
 import { WatchlistManager } from "@/components/WatchlistManager";
 import { LiveCryptoChart } from "@/components/LiveCryptoChart";
-import { Top15CryptoChart } from "@/components/Top15CryptoChart";
+
 import { LiveCoinWatchWidget } from "@/components/LiveCoinWatchWidget";
 import { Star, BarChart3, TrendingUp } from "lucide-react";
 
@@ -73,13 +73,12 @@ export default function Market() {
           <div className="space-y-4">
             <div className="flex items-center gap-2">
               <BarChart3 className="w-5 h-5 text-primary" />
-              <h2 className="text-xl font-semibold">All Crypto Charts</h2>
+              <h2 className="text-xl font-semibold">Live Crypto Charts</h2>
             </div>
             <p className="text-muted-foreground mb-6">
-              Live prices and trading for top 15 cryptocurrencies. Click any
-              crypto to start trading with real-time price data.
+              Real-time cryptocurrency prices and market data powered by Live Coin Watch.
             </p>
-            <Top15CryptoChart />
+            <LiveCoinWatchWidget />
           </div>
         )}
 

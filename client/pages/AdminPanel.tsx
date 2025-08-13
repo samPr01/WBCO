@@ -1,381 +1,455 @@
 // @ts-nocheck
 import { useState, useEffect } from "react";
+import { useAccount } from "wagmi";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Textarea } from "@/components/ui/textarea";
-import { ArrowLeft, Search, Eye, MessageSquare, Users, CreditCard, HelpCircle, Wallet, FileText, Activity } from "lucide-react";
-import { useNavigate } from "react-router-dom";
+import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
-import { supabase, User, Transaction, SupportRequest } from "@/lib/supabase";
-import { useAccount } from "wagmi";
-import { AdminWalletManager } from "@/components/AdminWalletManager";
-import { AdminProofManager } from "@/components/AdminProofManager";
-import { PaymentMonitor } from "@/components/PaymentMonitor";
+import { 
+  TrendingUp, 
+  TrendingDown, 
+  DollarSign,
+  Users,
+  Activity,
+  Filter,
+  Download,
+  RefreshCw,
+  Search,
+  Eye,
+  EyeOff
+} from "lucide-react";
+
+interface Trade {
+  _id: string;
+  userId: string;
+  symbol: string;
+  amount: number;
+  duration: number;
+  prediction: string;
+  openPrice: number;
+  closePrice?: number;
+  expectedReturn: number;
+  profit?: number;
+  status: 'pending' | 'completed';
+  isWin?: boolean;
+  openTime: string;
+  closeTime?: string;
+  tradeType: string;
+  returnPercentage: number;
+  fee: number;
+  actualDirection?: string;
+  totalReturn?: number;
+}
+
+interface Stats {
+  totalTrades: number;
+  totalVolume: number;
+  totalProfit: number;
+  winRate: number;
+}
 
 export default function AdminPanel() {
-  const navigate = useNavigate();
-  const { address } = useAccount();
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [password, setPassword] = useState("");
-  const [users, setUsers] = useState<User[]>([]);
-  const [transactions, setTransactions] = useState<Transaction[]>([]);
-  const [supportRequests, setSupportRequests] = useState<SupportRequest[]>([]);
-  const [searchTerm, setSearchTerm] = useState("");
-  const [selectedUser, setSelectedUser] = useState<User | null>(null);
-  const [userTransactions, setUserTransactions] = useState<Transaction[]>([]);
-  const [loading, setLoading] = useState(false);
+  const { address, isConnected } = useAccount();
+  
+  const [trades, setTrades] = useState<Trade[]>([]);
+  const [stats, setStats] = useState<Stats>({
+    totalTrades: 0,
+    totalVolume: 0,
+    totalProfit: 0,
+    winRate: 0
+  });
+  const [isLoading, setIsLoading] = useState(false);
+  const [page, setPage] = useState(1);
+  const [hasMore, setHasMore] = useState(true);
+  const [filters, setFilters] = useState({
+    status: '',
+    symbol: '',
+    userId: '',
+    tradeType: ''
+  });
+  const [showUserIds, setShowUserIds] = useState(false);
+  
+  const API_BASE = import.meta.env.VITE_TRADING_API_URL || 'http://localhost:3003';
 
-  // Admin wallet addresses (you can add more)
-  const ADMIN_WALLETS = [
-    "TQbchYKr8FbXCVPNTtDVdrfGYKiUnkJVnY", // USDT admin wallet
-  ];
-  const ADMIN_PASSWORD = import.meta.env.VITE_ADMIN_PASSWORD || "nndp007@+-";
+  // Check if user is admin (you can customize this logic)
+  const isAdmin = address === '0x2499aDe1b915E12819e8E38B1d9ed3493107E2B1'; // Replace with actual admin address
+
+  // Fetch all trades for admin
+  const fetchTrades = async (pageNum = 1, append = false) => {
+    if (!isConnected || !isAdmin) return;
+    
+    setIsLoading(true);
+    
+    try {
+      const params = new URLSearchParams({
+        page: pageNum.toString(),
+        limit: '50'
+      });
+      
+      // Add filters
+      Object.entries(filters).forEach(([key, value]) => {
+        if (value) params.append(key, value);
+      });
+      
+      const response = await fetch(`${API_BASE}/api/admin/trades?${params}`);
+      const data = await response.json();
+      
+      if (data.success) {
+        if (append) {
+          setTrades(prev => [...prev, ...data.trades]);
+        } else {
+          setTrades(data.trades);
+        }
+        
+        setStats(data.stats);
+        setHasMore(data.trades.length === 50);
+        setPage(pageNum);
+      } else {
+        toast.error(data.message || "Failed to fetch trades");
+      }
+    } catch (error) {
+      console.error('Error fetching trades:', error);
+      toast.error("Failed to fetch trades");
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   useEffect(() => {
-    checkAuth();
-  }, [address]);
+    fetchTrades(1, false);
+  }, [isConnected, isAdmin, filters]);
 
-  const checkAuth = () => {
-    if (ADMIN_WALLETS.includes(address?.toLowerCase() || "") || password === ADMIN_PASSWORD) {
-      setIsAuthenticated(true);
-      loadData();
-    }
+  const handleFilterChange = (key: string, value: string) => {
+    setFilters(prev => ({ ...prev, [key]: value }));
+    setPage(1);
   };
 
-  const loadData = async () => {
-    setLoading(true);
-    try {
-      // Load users
-      const { data: usersData } = await supabase
-        .from('users')
-        .select('*')
-        .order('created_at', { ascending: false });
-      setUsers(usersData || []);
+  const exportTrades = () => {
+    const csvContent = [
+      ['ID', 'User ID', 'Symbol', 'Amount', 'Duration', 'Prediction', 'Status', 'Profit', 'Open Time', 'Close Time'],
+      ...trades.map(trade => [
+        trade._id,
+        trade.userId,
+        trade.symbol,
+        trade.amount,
+        trade.duration,
+        trade.prediction,
+        trade.status,
+        trade.profit || 0,
+        trade.openTime,
+        trade.closeTime || ''
+      ])
+    ].map(row => row.join(',')).join('\n');
 
-      // Load transactions
-      const { data: transactionsData } = await supabase
-        .from('transactions')
-        .select('*')
-        .order('created_at', { ascending: false });
-      setTransactions(transactionsData || []);
-
-      // Load support requests
-      const { data: supportData } = await supabase
-        .from('support_requests')
-        .select('*')
-        .order('created_at', { ascending: false });
-      setSupportRequests(supportData || []);
-    } catch (error) {
-      console.error('Error loading data:', error);
-      toast.error('Failed to load data');
-    } finally {
-      setLoading(false);
-    }
+    const blob = new Blob([csvContent], { type: 'text/csv' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `trades-${new Date().toISOString().split('T')[0]}.csv`;
+    a.click();
+    window.URL.revokeObjectURL(url);
+    
+    toast.success("Trades exported successfully");
   };
 
-  const handlePasswordSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    checkAuth();
+  const formatPrice = (price: number) => {
+    if (price < 1) return price.toFixed(4);
+    if (price < 1000) return price.toFixed(2);
+    return price.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   };
 
-  const loadUserTransactions = async (walletAddress: string) => {
-    const { data } = await supabase
-      .from('transactions')
-      .select('*')
-      .eq('wallet_address', walletAddress)
-      .order('created_at', { ascending: false });
-    setUserTransactions(data || []);
+  const formatDuration = (seconds: number) => {
+    if (seconds < 60) return `${seconds}s`;
+    if (seconds < 3600) return `${Math.floor(seconds / 60)}m`;
+    if (seconds < 86400) return `${Math.floor(seconds / 3600)}h`;
+    return `${Math.floor(seconds / 86400)}d`;
   };
 
-  const handleSupportResponse = async (requestId: string, response: string) => {
-    try {
-      await supabase
-        .from('support_requests')
-        .update({ 
-          status: 'resolved',
-          response,
-        })
-        .eq('id', requestId);
-      
-      toast.success('Response sent successfully');
-      loadData(); // Reload data
-    } catch (error) {
-      console.error('Error sending response:', error);
-      toast.error('Failed to send response');
-    }
+  const formatDateTime = (dateString: string) => {
+    return new Date(dateString).toLocaleString('en-US', {
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
   };
 
-  if (!isAuthenticated) {
+  const formatUserId = (userId: string) => {
+    if (showUserIds) return userId;
+    return `${userId.slice(0, 6)}...${userId.slice(-4)}`;
+  };
+
+  if (!isConnected) {
     return (
-      <div className="container mx-auto p-6 max-w-md">
+      <div className="container mx-auto px-4 py-6">
         <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <ArrowLeft className="w-5 h-5" onClick={() => navigate(-1)} />
-              Admin Access
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <form onSubmit={handlePasswordSubmit} className="space-y-4">
-              <div>
-                <Label htmlFor="password">Admin Password</Label>
-                <Input
-                  id="password"
-                  type="password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  placeholder="Enter admin password"
-                />
-              </div>
-              <Button type="submit" className="w-full">
-                Access Admin Panel
-              </Button>
-            </form>
+          <CardContent className="p-8 text-center">
+            <div className="text-muted-foreground mb-4">
+              <svg className="w-16 h-16 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+              </svg>
+            </div>
+            <h3 className="text-lg font-semibold mb-2">Connect Your Wallet</h3>
+            <p className="text-muted-foreground">
+              Please connect your wallet to access the admin panel.
+            </p>
           </CardContent>
         </Card>
       </div>
     );
   }
 
-  const filteredUsers = users.filter(user =>
-    user.wallet_address.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    user.user_id.toLowerCase().includes(searchTerm.toLowerCase())
-  );
-
-  const filteredTransactions = transactions.filter(tx =>
-    tx.wallet_address.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    tx.type.toLowerCase().includes(searchTerm.toLowerCase())
-  );
-
-  const pendingSupportRequests = supportRequests.filter(req => req.status !== 'resolved');
+  if (!isAdmin) {
+    return (
+      <div className="container mx-auto px-4 py-6">
+        <Card>
+          <CardContent className="p-8 text-center">
+            <div className="text-muted-foreground mb-4">
+              <svg className="w-16 h-16 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
+              </svg>
+            </div>
+            <h3 className="text-lg font-semibold mb-2">Access Denied</h3>
+            <p className="text-muted-foreground">
+              You don't have permission to access the admin panel.
+            </p>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   return (
-    <div className="container mx-auto p-6">
-      <div className="flex items-center gap-4 mb-6">
-        <Button variant="ghost" onClick={() => navigate(-1)}>
-          <ArrowLeft className="w-4 h-4 mr-2" />
-          Back
-        </Button>
-        <h1 className="text-2xl font-bold">Admin Panel</h1>
-        <Badge variant="secondary">Admin</Badge>
+    <div className="container mx-auto px-4 py-6 space-y-6">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold">Admin Panel</h1>
+          <p className="text-muted-foreground">Monitor all trading activity and statistics</p>
+        </div>
+        <div className="flex gap-2">
+          <Button
+            variant="outline"
+            onClick={() => setShowUserIds(!showUserIds)}
+          >
+            {showUserIds ? <EyeOff className="w-4 h-4 mr-2" /> : <Eye className="w-4 h-4 mr-2" />}
+            {showUserIds ? 'Hide' : 'Show'} User IDs
+          </Button>
+          <Button
+            variant="outline"
+            onClick={exportTrades}
+          >
+            <Download className="w-4 h-4 mr-2" />
+            Export
+          </Button>
+          <Button
+            variant="outline"
+            onClick={() => fetchTrades(1, false)}
+            disabled={isLoading}
+          >
+            <RefreshCw className={`w-4 h-4 mr-2 ${isLoading ? 'animate-spin' : ''}`} />
+            Refresh
+          </Button>
+        </div>
       </div>
 
-      <Tabs defaultValue="users" className="space-y-4">
-        <TabsList>
-          <TabsTrigger value="users" className="flex items-center gap-2">
-            <Users className="w-4 h-4" />
-            Users ({users.length})
-          </TabsTrigger>
-          <TabsTrigger value="transactions" className="flex items-center gap-2">
-            <CreditCard className="w-4 h-4" />
-            Transactions ({transactions.length})
-          </TabsTrigger>
-          <TabsTrigger value="support" className="flex items-center gap-2">
-            <HelpCircle className="w-4 h-4" />
-            Support ({pendingSupportRequests.length})
-          </TabsTrigger>
-          <TabsTrigger value="wallets" className="flex items-center gap-2">
-            <Wallet className="w-4 h-4" />
-            Wallet Management
-          </TabsTrigger>
-          <TabsTrigger value="proofs" className="flex items-center gap-2">
-            <FileText className="w-4 h-4" />
-            Proof Management
-          </TabsTrigger>
-          <TabsTrigger value="payments" className="flex items-center gap-2">
-            <Activity className="w-4 h-4" />
-            Payment Monitoring
-          </TabsTrigger>
-        </TabsList>
+      {/* Statistics Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <Card>
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-muted-foreground">Total Trades</p>
+                <p className="text-2xl font-bold">{stats.totalTrades.toLocaleString()}</p>
+              </div>
+              <Activity className="w-8 h-8 text-blue-500" />
+            </div>
+          </CardContent>
+        </Card>
+        
+        <Card>
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-muted-foreground">Total Volume</p>
+                <p className="text-2xl font-bold">${stats.totalVolume.toLocaleString()}</p>
+              </div>
+              <DollarSign className="w-8 h-8 text-green-500" />
+            </div>
+          </CardContent>
+        </Card>
+        
+        <Card>
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-muted-foreground">Total Profit</p>
+                <p className={`text-2xl font-bold ${stats.totalProfit >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                  ${stats.totalProfit.toLocaleString()}
+                </p>
+              </div>
+              <TrendingUp className="w-8 h-8 text-purple-500" />
+            </div>
+          </CardContent>
+        </Card>
+        
+        <Card>
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-muted-foreground">Win Rate</p>
+                <p className="text-2xl font-bold">{(stats.winRate * 100).toFixed(1)}%</p>
+              </div>
+              <TrendingDown className="w-8 h-8 text-orange-500" />
+            </div>
+          </CardContent>
+        </Card>
+      </div>
 
-        <TabsContent value="users" className="space-y-4">
-          <div className="flex gap-4">
-            <Input
-              placeholder="Search users..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="max-w-sm"
-            />
+      {/* Filters */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Filter className="w-5 h-5" />
+            Filters
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <div>
+              <label className="text-sm font-medium mb-2 block">Status</label>
+              <select
+                className="w-full p-2 border rounded-md"
+                value={filters.status}
+                onChange={(e) => handleFilterChange('status', e.target.value)}
+              >
+                <option value="">All</option>
+                <option value="pending">Pending</option>
+                <option value="completed">Completed</option>
+              </select>
+            </div>
+            
+            <div>
+              <label className="text-sm font-medium mb-2 block">Symbol</label>
+              <select
+                className="w-full p-2 border rounded-md"
+                value={filters.symbol}
+                onChange={(e) => handleFilterChange('symbol', e.target.value)}
+              >
+                <option value="">All</option>
+                <option value="BTC">BTC</option>
+                <option value="ETH">ETH</option>
+                <option value="SOL">SOL</option>
+                <option value="XRP">XRP</option>
+                <option value="BNB">BNB</option>
+              </select>
+            </div>
+            
+            <div>
+              <label className="text-sm font-medium mb-2 block">Trade Type</label>
+              <select
+                className="w-full p-2 border rounded-md"
+                value={filters.tradeType}
+                onChange={(e) => handleFilterChange('tradeType', e.target.value)}
+              >
+                <option value="">All</option>
+                <option value="option">Option</option>
+                <option value="contract">Contract</option>
+              </select>
+            </div>
+            
+            <div>
+              <label className="text-sm font-medium mb-2 block">User ID</label>
+              <Input
+                placeholder="Search by user ID"
+                value={filters.userId}
+                onChange={(e) => handleFilterChange('userId', e.target.value)}
+              />
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Trades Table */}
+      <Card>
+        <CardHeader>
+          <CardTitle>All Trades</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead>
+                <tr className="border-b">
+                  <th className="text-left p-3 font-medium">User</th>
+                  <th className="text-left p-3 font-medium">Symbol</th>
+                  <th className="text-left p-3 font-medium">Amount</th>
+                  <th className="text-left p-3 font-medium">Duration</th>
+                  <th className="text-left p-3 font-medium">Prediction</th>
+                  <th className="text-left p-3 font-medium">Status</th>
+                  <th className="text-right p-3 font-medium">Profit</th>
+                  <th className="text-left p-3 font-medium">Open Time</th>
+                </tr>
+              </thead>
+              <tbody>
+                {trades.map((trade) => (
+                  <tr key={trade._id} className="border-b hover:bg-muted/50">
+                    <td className="p-3 font-mono text-sm">
+                      {formatUserId(trade.userId)}
+                    </td>
+                    <td className="p-3">
+                      <Badge variant="outline">{trade.symbol}</Badge>
+                    </td>
+                    <td className="p-3">${trade.amount.toFixed(2)}</td>
+                    <td className="p-3">{formatDuration(trade.duration)}</td>
+                    <td className="p-3">
+                      <Badge 
+                        variant={trade.prediction === 'up' ? 'default' : 'destructive'}
+                        className="capitalize"
+                      >
+                        {trade.prediction}
+                      </Badge>
+                    </td>
+                    <td className="p-3">
+                      <Badge 
+                        variant={trade.status === 'completed' ? 'default' : 'secondary'}
+                      >
+                        {trade.status}
+                      </Badge>
+                    </td>
+                    <td className={`p-3 text-right font-medium ${
+                      trade.profit && trade.profit > 0 ? 'text-green-600' : 'text-red-600'
+                    }`}>
+                      {trade.profit ? (trade.profit > 0 ? '+' : '') + `$${trade.profit.toFixed(2)}` : '-'}
+                    </td>
+                    <td className="p-3 text-sm text-muted-foreground">
+                      {formatDateTime(trade.openTime)}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
           
-          <div className="grid gap-4">
-            {filteredUsers.map((user) => (
-              <Card key={user.id}>
-                <CardContent className="p-4">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="font-medium">User ID: {user.user_id}</p>
-                      <p className="text-sm text-muted-foreground">
-                        {user.wallet_address.slice(0, 6)}...{user.wallet_address.slice(-4)}
-                      </p>
-                      <p className="text-xs text-muted-foreground">
-                        Last login: {new Date(user.last_login).toLocaleDateString()}
-                      </p>
-                    </div>
-                    <Dialog>
-                      <DialogTrigger asChild>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => {
-                            setSelectedUser(user);
-                            loadUserTransactions(user.wallet_address);
-                          }}
-                        >
-                          <Eye className="w-4 h-4 mr-2" />
-                          View Transactions
-                        </Button>
-                      </DialogTrigger>
-                      <DialogContent className="max-w-2xl">
-                        <DialogHeader>
-                          <DialogTitle>Transactions for {user.user_id}</DialogTitle>
-                        </DialogHeader>
-                        <div className="space-y-2 max-h-96 overflow-y-auto">
-                          {userTransactions.length === 0 ? (
-                            <p className="text-muted-foreground">No transactions found</p>
-                          ) : (
-                            userTransactions.map((tx) => (
-                              <div key={tx.id} className="flex justify-between items-center p-2 border rounded">
-                                <div>
-                                  <p className="font-medium">{tx.type.replace('_', ' ')}</p>
-                                  <p className="text-sm text-muted-foreground">
-                                    {new Date(tx.timestamp).toLocaleDateString()}
-                                  </p>
-                                  {tx.token_symbol && (
-                                    <p className="text-xs text-muted-foreground">
-                                      {tx.token_symbol}
-                                    </p>
-                                  )}
-                                </div>
-                                <Badge variant={tx.type.includes('deposit') ? 'default' : 'secondary'}>
-                                  {tx.amount} {tx.token_symbol || 'ETH'}
-                                </Badge>
-                              </div>
-                            ))
-                          )}
-                        </div>
-                      </DialogContent>
-                    </Dialog>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        </TabsContent>
-
-        <TabsContent value="transactions" className="space-y-4">
-          <div className="flex gap-4">
-            <Input
-              placeholder="Search transactions..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="max-w-sm"
-            />
-          </div>
+          {trades.length === 0 && (
+            <div className="text-center py-8 text-muted-foreground">
+              No trades found matching the current filters.
+            </div>
+          )}
           
-          <div className="grid gap-4">
-            {filteredTransactions.map((tx) => (
-              <Card key={tx.id}>
-                <CardContent className="p-4">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="font-medium">{tx.type.replace('_', ' ')}</p>
-                      <p className="text-sm text-muted-foreground">
-                        {tx.wallet_address.slice(0, 6)}...{tx.wallet_address.slice(-4)}
-                      </p>
-                      <p className="text-xs text-muted-foreground">
-                        {new Date(tx.timestamp).toLocaleDateString()}
-                      </p>
-                      {tx.token_symbol && (
-                        <p className="text-xs text-muted-foreground">
-                          Token: {tx.token_symbol}
-                        </p>
-                      )}
-                    </div>
-                    <Badge variant={tx.type.includes('deposit') ? 'default' : 'secondary'}>
-                      {tx.amount} {tx.token_symbol || 'ETH'}
-                    </Badge>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        </TabsContent>
-
-        <TabsContent value="support" className="space-y-4">
-          <div className="grid gap-4">
-            {pendingSupportRequests.map((request) => (
-              <Card key={request.id}>
-                <CardContent className="p-4">
-                  <div className="space-y-4">
-                    <div>
-                      <p className="font-medium">Support Request</p>
-                      <p className="text-sm text-muted-foreground">
-                        From: {request.wallet_address.slice(0, 6)}...{request.wallet_address.slice(-4)}
-                      </p>
-                      <p className="text-xs text-muted-foreground">
-                        {new Date(request.timestamp).toLocaleDateString()}
-                      </p>
-                    </div>
-                    <div>
-                      <p className="text-sm">{request.message}</p>
-                    </div>
-                    <Dialog>
-                      <DialogTrigger asChild>
-                        <Button size="sm">
-                          <MessageSquare className="w-4 h-4 mr-2" />
-                          Respond
-                        </Button>
-                      </DialogTrigger>
-                      <DialogContent>
-                        <DialogHeader>
-                          <DialogTitle>Respond to Support Request</DialogTitle>
-                        </DialogHeader>
-                        <div className="space-y-4">
-                          <div>
-                            <Label>Response</Label>
-                            <Textarea
-                              placeholder="Enter your response..."
-                              id={`response-${request.id}`}
-                            />
-                          </div>
-                          <Button
-                            onClick={() => {
-                              const response = (document.getElementById(`response-${request.id}`) as HTMLTextAreaElement)?.value;
-                              if (response) {
-                                handleSupportResponse(request.id, response);
-                              }
-                            }}
-                          >
-                            Send Response
-                          </Button>
-                        </div>
-                      </DialogContent>
-                    </Dialog>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        </TabsContent>
-
-        <TabsContent value="wallets" className="space-y-4">
-          <AdminWalletManager />
-        </TabsContent>
-
-        <TabsContent value="proofs" className="space-y-4">
-          <AdminProofManager isAdmin={isAuthenticated} />
-        </TabsContent>
-
-        <TabsContent value="payments" className="space-y-4">
-          <PaymentMonitor />
-        </TabsContent>
-      </Tabs>
+          {hasMore && (
+            <div className="text-center mt-4">
+              <Button
+                variant="outline"
+                onClick={() => fetchTrades(page + 1, true)}
+                disabled={isLoading}
+              >
+                {isLoading ? 'Loading...' : 'Load More'}
+              </Button>
+            </div>
+          )}
+        </CardContent>
+      </Card>
     </div>
   );
 }

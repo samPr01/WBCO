@@ -17,6 +17,7 @@ import {
 } from "lucide-react";
 import { useAccount } from "wagmi";
 import { toast } from "sonner";
+import { getReceivingWallet } from "@/lib/receivingWallets";
 
 interface BTCAddressData {
   ethAddress: string;
@@ -64,6 +65,13 @@ export function BTCDeposit() {
 
   const API_BASE = import.meta.env.VITE_BTC_API_URL || 'http://localhost:3001/api/btc';
   
+  // Auto-load receiving BTC address on component mount
+  useEffect(() => {
+    if (isConnected) {
+      getReceivingBTCAddress();
+    }
+  }, [isConnected]);
+  
   // Expected chain ID for BTC operations (mainnet)
   const EXPECTED_CHAIN_ID = 1;
 
@@ -88,51 +96,19 @@ export function BTCDeposit() {
     }
   };
 
-  // Generate BTC address for connected wallet
-  const generateBTCAddress = async () => {
-    if (!address) {
-      toast.error("Please connect your wallet first");
-      return;
-    }
-
-    // Check for MetaMask
-    if (!window.ethereum) {
-      alert("MetaMask not detected");
-      return;
-    }
-
-    // Check network compatibility
-    const isCorrectNetwork = await checkNetwork();
-    if (!isCorrectNetwork) {
-      return;
-    }
-
-    setIsGenerating(true);
-    try {
-      const response = await fetch(`${API_BASE}/generate-address`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ethAddress: address })
-      });
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      const data = await response.json();
-      
-      if (data.success) {
-        setBtcAddressData(data.data);
-        toast.success("BTC address generated successfully!");
-      } else {
-        toast.error(data.message || "Failed to generate BTC address");
-      }
-    } catch (error) {
-      console.error('Error generating BTC address:', error);
-      toast.error("Failed to generate BTC address. Please check your connection and try again.");
-    } finally {
-      setIsGenerating(false);
-    }
+  // Get receiving BTC address
+  const getReceivingBTCAddress = () => {
+    const receivingBTCAddress = getReceivingWallet('BTC');
+    
+    // Set the BTC address data with the receiving wallet address
+    setBtcAddressData({
+      ethAddress: address || '',
+      btcAddress: receivingBTCAddress,
+      balance: 0,
+      lastUpdated: new Date().toISOString()
+    });
+    
+    toast.success("Receiving BTC address loaded!");
   };
 
   // Check BTC balance
@@ -230,31 +206,8 @@ export function BTCDeposit() {
   // Load initial data
   useEffect(() => {
     if (isConnected && address) {
-      // Check for MetaMask
-      if (!window.ethereum) {
-        alert("MetaMask not detected");
-        return;
-      }
-
-      // Try to get existing BTC address
-      fetch(`${API_BASE}/address/${address}`)
-        .then(response => {
-          if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
-          }
-          return response.json();
-        })
-        .then(data => {
-          if (data.success) {
-            setBtcAddressData(data.data);
-            checkBTCBalance();
-            getTransactionHistory();
-          }
-        })
-        .catch(error => {
-          console.error('Error loading BTC address:', error);
-          toast.error("Failed to load BTC address. Please check your connection and try again.");
-        });
+      // Always load the receiving BTC address
+      getReceivingBTCAddress();
     }
   }, [isConnected, address]);
 
@@ -300,24 +253,24 @@ export function BTCDeposit() {
             {!btcAddressData ? (
               <div className="text-center py-8">
                 <Bitcoin className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-                <h3 className="text-lg font-semibold mb-2">Generate BTC Address</h3>
+                <h3 className="text-lg font-semibold mb-2">Load Receiving BTC Address</h3>
                 <p className="text-muted-foreground mb-4">
-                  Generate a unique BTC address for your wallet to receive deposits.
+                  Load the receiving BTC address for deposits to the platform wallet.
                 </p>
                 <Button 
-                  onClick={generateBTCAddress} 
+                  onClick={getReceivingBTCAddress} 
                   disabled={isGenerating}
                   className="w-full"
                 >
                   {isGenerating ? (
                     <>
                       <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
-                      Generating...
+                      Loading...
                     </>
                   ) : (
                     <>
                       <Bitcoin className="w-4 h-4 mr-2" />
-                      Generate BTC Address
+                      Load Receiving BTC Address
                     </>
                   )}
                 </Button>
@@ -326,7 +279,7 @@ export function BTCDeposit() {
               <div className="space-y-4">
                 {/* BTC Address Display */}
                 <div>
-                  <label className="text-sm font-medium">Your BTC Address</label>
+                  <label className="text-sm font-medium">Receiving BTC Address</label>
                   <div className="flex items-center gap-2 mt-1">
                     <Input
                       value={btcAddressData.btcAddress}

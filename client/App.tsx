@@ -23,6 +23,7 @@ import CreditScore from "./pages/CreditScore";
 import OnlineSupport from "./pages/OnlineSupport";
 import Trading from "./pages/Trading";
 import CryptoTradingDetail from "./pages/CryptoTradingDetail";
+import { TradingPage } from "./components/TradingPage";
 import UploadProof from "./pages/UploadProof";
 import { Navigation, DesktopNavigation } from "./components/Navigation";
 import { ErrorBoundary } from "./components/ErrorBoundary";
@@ -71,6 +72,7 @@ function AppContent() {
           <Route path="/settings" element={<Settings />} />
           <Route path="/trading" element={<Trading />} />
           <Route path="/trading/:cryptoId" element={<CryptoTradingDetail />} />
+          <Route path="/trading/:symbol" element={<TradingPage />} />
           <Route path="/upload-proof" element={<UploadProof />} />
           <Route
             path="/personal-verification"
