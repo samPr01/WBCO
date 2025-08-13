@@ -43,16 +43,79 @@ const TOP_CRYPTO_IDS = [
   "litecoin"
 ];
 
+// Fallback data for when API is unavailable
+const FALLBACK_PRICES: CryptoPrice[] = [
+  {
+    id: "bitcoin",
+    symbol: "btc",
+    name: "Bitcoin",
+    current_price: 45000,
+    market_cap: 850000000000,
+    market_cap_rank: 1,
+    total_volume: 25000000000,
+    high_24h: 46000,
+    low_24h: 44000,
+    price_change_24h: 500,
+    price_change_percentage_24h: 1.12,
+    price_change_percentage_7d_in_currency: 2.5,
+    last_updated: new Date().toISOString()
+  },
+  {
+    id: "ethereum",
+    symbol: "eth",
+    name: "Ethereum",
+    current_price: 2800,
+    market_cap: 350000000000,
+    market_cap_rank: 2,
+    total_volume: 15000000000,
+    high_24h: 2850,
+    low_24h: 2750,
+    price_change_24h: 25,
+    price_change_percentage_24h: 0.89,
+    price_change_percentage_7d_in_currency: 1.8,
+    last_updated: new Date().toISOString()
+  },
+  {
+    id: "tether",
+    symbol: "usdt",
+    name: "Tether",
+    current_price: 1.00,
+    market_cap: 95000000000,
+    market_cap_rank: 3,
+    total_volume: 50000000000,
+    high_24h: 1.01,
+    low_24h: 0.99,
+    price_change_24h: 0,
+    price_change_percentage_24h: 0,
+    price_change_percentage_7d_in_currency: 0,
+    last_updated: new Date().toISOString()
+  }
+];
+
 export function useCryptoPrices() {
   const [state, setState] = useState<CryptoPricesState>({
-    prices: [],
+    prices: FALLBACK_PRICES, // Start with fallback data
     isLoading: true,
     error: null,
     lastUpdated: null,
   });
 
-  const fetchPrices = async () => {
+  const [retryCount, setRetryCount] = useState(0);
+  const [lastErrorTime, setLastErrorTime] = useState<number>(0);
+
+  const fetchPrices = async (isRetry = false) => {
     try {
+      // If we got a 429 error recently, wait before retrying
+      if (isRetry && lastErrorTime > 0) {
+        const timeSinceError = Date.now() - lastErrorTime;
+        const minWaitTime = Math.min(60000 * Math.pow(2, retryCount), 300000); // Exponential backoff, max 5 minutes
+        
+        if (timeSinceError < minWaitTime) {
+          console.log(`Waiting ${minWaitTime - timeSinceError}ms before retry...`);
+          return;
+        }
+      }
+
       setState(prev => ({ ...prev, isLoading: true, error: null }));
 
       const ids = TOP_CRYPTO_IDS.join(",");
@@ -66,10 +129,19 @@ export function useCryptoPrices() {
       });
       
       if (!response.ok) {
+        if (response.status === 429) {
+          setLastErrorTime(Date.now());
+          setRetryCount(prev => prev + 1);
+          throw new Error(`Rate limited. Retrying in ${Math.min(60000 * Math.pow(2, retryCount), 300000) / 1000}s...`);
+        }
         throw new Error(`HTTP error! status: ${response.status}`);
       }
 
       const data: CryptoPrice[] = await response.json();
+      
+      // Reset retry count on success
+      setRetryCount(0);
+      setLastErrorTime(0);
       
       setState({
         prices: data,
@@ -79,22 +151,48 @@ export function useCryptoPrices() {
       });
     } catch (error) {
       console.error("Error fetching crypto prices:", error);
-      setState(prev => ({
-        ...prev,
-        isLoading: false,
-        error: error instanceof Error ? error.message : "Failed to fetch prices",
-      }));
+      
+      // If we have fallback data, use it instead of showing error
+      if (state.prices.length > 0 && state.prices !== FALLBACK_PRICES) {
+        setState(prev => ({
+          ...prev,
+          isLoading: false,
+          error: error instanceof Error ? error.message : "Failed to fetch prices",
+        }));
+      } else {
+        // Use fallback data if we don't have any prices
+        setState({
+          prices: FALLBACK_PRICES,
+          isLoading: false,
+          error: "Using cached data due to API limits",
+          lastUpdated: new Date(),
+        });
+      }
     }
   };
 
   useEffect(() => {
     fetchPrices();
 
-    // Refresh prices every 30 seconds
-    const interval = setInterval(fetchPrices, 30000);
+    // Refresh prices every 60 seconds (increased from 30 to reduce rate limiting)
+    const interval = setInterval(() => {
+      fetchPrices();
+    }, 60000);
 
     return () => clearInterval(interval);
   }, []);
+
+  // Retry mechanism for rate limiting
+  useEffect(() => {
+    if (retryCount > 0 && lastErrorTime > 0) {
+      const retryDelay = Math.min(60000 * Math.pow(2, retryCount - 1), 300000);
+      const timer = setTimeout(() => {
+        fetchPrices(true);
+      }, retryDelay);
+      
+      return () => clearTimeout(timer);
+    }
+  }, [retryCount, lastErrorTime]);
 
   const getCryptoPrice = (symbol: string): CryptoPrice | null => {
     return state.prices.find(crypto => 

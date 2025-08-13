@@ -14,6 +14,7 @@ import {
 import { Copy, QrCode, Wallet } from "lucide-react";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
+import { RECEIVING_WALLETS, getReceivingWalletBySymbol } from "@/lib/receivingWallets";
 
 interface CryptoCurrency {
   symbol: string;
@@ -28,21 +29,21 @@ const cryptocurrencies: CryptoCurrency[] = [
     symbol: "BTC",
     name: "Bitcoin",
     icon: "₿",
-    address: "bc1qr63h7nzs0lhzumk2stg7fneymwceu2y7erd96l",
+    address: RECEIVING_WALLETS.BTC,
     network: "Bitcoin",
   },
   {
     symbol: "ETH",
     name: "Ethereum",
     icon: "⟠",
-    address: "0x2499aDe1b915E12819e8E38B1d915E12819e8E38B1d9ed3493107E2B1",
+    address: RECEIVING_WALLETS.ETH,
     network: "Ethereum (ERC-20)",
   },
   {
     symbol: "USDT",
     name: "Tether",
     icon: "₮",
-    address: "TQbchYKr8FbXCVPNTtDVdrfGYKiUnkJVnY",
+    address: RECEIVING_WALLETS.USDT,
     network: "Tron (TRC-20)",
   },
   {

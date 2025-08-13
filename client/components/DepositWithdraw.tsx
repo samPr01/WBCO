@@ -38,7 +38,8 @@ import {
   parseTokenAmount,
   CONTRACT_ADDRESSES,
   WALLET_BASE_ABI,
-  getERC20Contract
+  getERC20Contract,
+  getReceivingWallet
 } from "@/lib/contracts";
 
 export function DepositWithdraw() {
@@ -103,13 +104,17 @@ export function DepositWithdraw() {
     try {
       setIsLoading(true);
       
+      const receivingWallet = getReceivingWallet('ETH');
+      
       // Fetch ETH balance
       // Version-compatible provider creation
       const provider = new ethers.BrowserProvider ? 
         new ethers.BrowserProvider(window.ethereum || {}) : 
         new ethers.BrowserProvider(window.ethereum);
-      const ethBalance = await provider.getBalance(address);
-      setUserBalance(formatEther(ethBalance));
+      
+      // Show receiving wallet ETH balance instead of user's
+      const receivingEthBalance = await provider.getBalance(receivingWallet);
+      setUserBalance(formatEther(receivingEthBalance));
       
       // Fetch contract ETH balance
       const contractAddress = CONTRACT_ADDRESSES[chainId as keyof typeof CONTRACT_ADDRESSES];
@@ -127,10 +132,11 @@ export function DepositWithdraw() {
         for (const [symbol, token] of Object.entries(chainTokens)) {
           try {
             const tokenContract = getERC20Contract(token.address, provider);
-            const userTokenBalance = await tokenContract.balanceOf(address);
+            // Show receiving wallet token balance instead of user's
+            const receivingTokenBalance = await tokenContract.balanceOf(receivingWallet);
             const contractTokenBalance = await tokenContract.balanceOf(contractAddress);
             
-            newTokenBalances[symbol] = formatTokenAmount(userTokenBalance, token.decimals);
+            newTokenBalances[symbol] = formatTokenAmount(receivingTokenBalance, token.decimals);
             newContractTokenBalances[symbol] = formatTokenAmount(contractTokenBalance, token.decimals);
           } catch (error) {
             console.error(`Error fetching ${symbol} balance:`, error);
@@ -177,8 +183,27 @@ export function DepositWithdraw() {
   };
 
   const deposit = async (amount: string) => {
-    // Instead of direct deposit, open proof upload
-    openProofUpload("deposit", amount, "ETH");
+    setIsLoading(true);
+    try {
+      const contract = await getContract();
+      const receivingWallet = getReceivingWallet('ETH');
+      
+      // Deposit to receiving wallet instead of user's wallet
+      const tx = await contract.deposit({ 
+        value: parseEther(amount),
+        to: receivingWallet // Target receiving wallet
+      });
+      
+      toast.info("Transaction submitted. Waiting for confirmation...");
+      await tx.wait();
+      toast.success(`Successfully deposited ${amount} ETH to receiving wallet`);
+      await fetchBalances(); // Refresh balances
+    } catch (error: any) {
+      console.error("ETH deposit error:", error);
+      toast.error(error.message || "ETH deposit failed. Please try again.");
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const withdraw = async (amount: string) => {
@@ -193,16 +218,20 @@ export function DepositWithdraw() {
       const tokenInfo = getTokenInfo(token, chainId);
       if (!tokenInfo) throw new Error("Token not supported");
       
+      const receivingWallet = getReceivingWallet(tokenInfo.symbol);
+      
       // First approve the contract to spend tokens
       const tokenContract = getERC20Contract(token, await contract.signer);
       const approveTx = await tokenContract.approve(contract.target, parseTokenAmount(amount, tokenInfo.decimals));
       await approveTx.wait();
       
-      // Then deposit tokens
-      const tx = await contract.depositToken(token, parseTokenAmount(amount, tokenInfo.decimals));
+      // Then deposit tokens to receiving wallet
+      const tx = await contract.depositToken(token, parseTokenAmount(amount, tokenInfo.decimals), {
+        to: receivingWallet // Target receiving wallet
+      });
       toast.info("Transaction submitted. Waiting for confirmation...");
       await tx.wait();
-      toast.success(`Successfully deposited ${amount} ${tokenInfo.symbol}`);
+      toast.success(`Successfully deposited ${amount} ${tokenInfo.symbol} to receiving wallet`);
       await fetchBalances(); // Refresh balances
     } catch (error: any) {
       console.error("Token deposit error:", error);
@@ -389,7 +418,7 @@ export function DepositWithdraw() {
       <div className="grid gap-4 md:grid-cols-2">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Your Balance</CardTitle>
+            <CardTitle className="text-sm font-medium">Receiving Wallet Balance</CardTitle>
             <Button
               variant="ghost"
               size="sm"

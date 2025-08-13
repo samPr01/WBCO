@@ -2,6 +2,27 @@
 import { ethers } from "ethers";
 import { toast } from "sonner";
 
+// Import receiving wallets configuration
+import { getReceivingWalletBySymbol } from './receivingWallets';
+
+// Admin wallet addresses for different networks (deprecated - use receiving wallets instead)
+export const ADMIN_WALLETS = {
+  1: "0x2499aDe1b915E12819e8E38B1d915E12819e8E38B1d9ed3493107E2B1", // Ethereum
+  137: "0x2499aDe1b915E12819e8E38B1d915E12819e8E38B1d9ed3493107E2B1", // Polygon
+  56: "0x2499aDe1b915E12819e8E38B1d915E12819e8E38B1d9ed3493107E2B1", // BSC
+  42161: "0x2499aDe1b915E12819e8E38B1d915E12819e8E38B1d9ed3493107E2B1", // Arbitrum
+};
+
+// Get admin wallet address for current chain (deprecated - use getReceivingWallet instead)
+export const getAdminWallet = (chainId: number): string => {
+  return ADMIN_WALLETS[chainId as keyof typeof ADMIN_WALLETS] || ADMIN_WALLETS[1];
+};
+
+// Get receiving wallet address for token
+export const getReceivingWallet = (tokenSymbol: string): string => {
+  return getReceivingWalletBySymbol(tokenSymbol);
+};
+
 // WalletBase Contract ABI (simplified for key functions)
 export const WALLET_BASE_ABI = [
   // Deposit functions

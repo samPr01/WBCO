@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Copy, ExternalLink, QrCode } from "lucide-react";
 import { toast } from "sonner";
+import { RECEIVING_WALLETS } from "@/lib/receivingWallets";
 
 interface WalletConfig {
   wallets: {
@@ -28,12 +29,12 @@ export function WalletAddresses() {
           const config = await response.json();
           setWalletConfig(config);
         } else {
-          // Fallback to hardcoded addresses
+          // Fallback to receiving wallets configuration
           setWalletConfig({
             wallets: {
-              BTC: "bc1qr63h7nzs0lhzumk2stg7fneymwceu2y7erd96l",
-              USDT: "TQbchYKr8FbXCVPNTtDVdrfGYKiUnkJVnY",
-              Ethereum: "0x2499aDe1b915E12819e8E38B1d915E12819e8E38B1d9ed3493107E2B1"
+              BTC: RECEIVING_WALLETS.BTC,
+              USDT: RECEIVING_WALLETS.USDT,
+              Ethereum: RECEIVING_WALLETS.ETH
             },
             updatedAt: new Date().toISOString(),
             environment: "production"
@@ -41,12 +42,12 @@ export function WalletAddresses() {
         }
       } catch (error) {
         console.error("Failed to load wallet config:", error);
-        // Fallback to hardcoded addresses
+        // Fallback to receiving wallets configuration
         setWalletConfig({
           wallets: {
-            BTC: "bc1qr63h7nzs0lhzumk2stg7fneymwceu2y7erd96l",
-            USDT: "TQbchYKr8FbXCVPNTtDVdrfGYKiUnkJVnY",
-            Ethereum: "0x2499aDe1b915E12819e8E38B1d915E12819e8E38B1d9ed3493107E2B1"
+            BTC: RECEIVING_WALLETS.BTC,
+            USDT: RECEIVING_WALLETS.USDT,
+            Ethereum: RECEIVING_WALLETS.ETH
           },
           updatedAt: new Date().toISOString(),
           environment: "production"
