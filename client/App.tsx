@@ -7,6 +7,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { lazy, Suspense } from "react";
+
 import { WagmiConfig, createConfig, http } from "wagmi";
 import { mainnet, polygon, bsc, arbitrum } from "wagmi/chains";
 // RainbowKit v2 is not compatible with current setup, using native wagmi connectors instead
@@ -61,7 +62,7 @@ function AppContent() {
   return (
     <div className="min-h-screen bg-background text-foreground">
       <DesktopNavigation />
-      <main className="pb-16 md:pb-0 md:pt-16">
+      <main className="pt-16 pb-16 md:pb-0 md:pt-16">
         <Routes>
           <Route path="/" element={<Index />} />
           <Route path="/market" element={<Market />} />

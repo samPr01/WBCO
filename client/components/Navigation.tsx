@@ -19,6 +19,7 @@ import { useState, useEffect } from "react";
 import { toast } from "sonner";
 import { connectWallet, disconnectWallet, getWalletBalance } from "@/lib/walletUtils";
 import { WalletButton } from "@/components/WalletButton";
+import { MobileWalletButton } from "@/components/MobileWalletButton";
 
 const navigationItems = [
   { href: "/", icon: Home, label: "Home" },
@@ -32,29 +33,43 @@ export function Navigation() {
   const location = useLocation();
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 bg-card border-t border-border z-50 md:hidden">
-      <div className="flex items-center justify-around py-2">
-        {navigationItems.slice(0, 5).map((item) => {
-          const isActive = location.pathname === item.href;
-          const Icon = item.icon;
-          return (
-            <Link
-              key={item.href}
-              to={item.href}
-              className={cn(
-                "flex flex-col items-center gap-1 p-2 rounded-lg transition-colors",
-                isActive
-                  ? "text-primary"
-                  : "text-muted-foreground hover:text-foreground",
-              )}
-            >
-              <Icon className="w-5 h-5" />
-              <span className="text-xs font-medium">{item.label}</span>
-            </Link>
-          );
-        })}
-      </div>
-    </nav>
+    <>
+      {/* Mobile Top Navigation with Wallet Button */}
+      <nav className="fixed top-0 left-0 right-0 bg-card/80 backdrop-blur-md border-b border-border z-50 md:hidden">
+        <div className="flex items-center justify-between px-4 py-3">
+          <Link to="/" className="flex items-center gap-2">
+            <div className="w-6 h-6 bg-gradient-to-r from-gradient-start to-gradient-end rounded-lg" />
+            <span className="font-bold text-lg">WalletBase</span>
+          </Link>
+          <MobileWalletButton />
+        </div>
+      </nav>
+
+      {/* Mobile Bottom Navigation */}
+      <nav className="fixed bottom-0 left-0 right-0 bg-card border-t border-border z-50 md:hidden">
+        <div className="flex items-center justify-around py-2">
+          {navigationItems.slice(0, 4).map((item) => {
+            const isActive = location.pathname === item.href;
+            const Icon = item.icon;
+            return (
+              <Link
+                key={item.href}
+                to={item.href}
+                className={cn(
+                  "flex flex-col items-center gap-1 p-2 rounded-lg transition-colors",
+                  isActive
+                    ? "text-primary"
+                    : "text-muted-foreground hover:text-foreground",
+                )}
+              >
+                <Icon className="w-5 h-5" />
+                <span className="text-xs font-medium">{item.label}</span>
+              </Link>
+            );
+          })}
+        </div>
+      </nav>
+    </>
   );
 }
 
@@ -146,35 +161,7 @@ export function DesktopNavigation() {
         </div>
 
         <div className="flex items-center gap-3">
-          {walletConnected ? (
-            <>
-              <div className="flex items-center gap-2 px-3 py-1 bg-muted rounded-lg">
-                <div className="w-2 h-2 bg-chart-positive rounded-full" />
-                <span className="text-sm font-mono">{displayAddress}</span>
-                <span className="text-sm text-muted-foreground">
-                  {displayBalance}
-                </span>
-              </div>
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={handleDisconnect}
-                className="flex items-center gap-2"
-              >
-                <LogOut className="w-3 h-3" />
-                Disconnect
-              </Button>
-            </>
-          ) : (
-            <Button
-              size="sm"
-              onClick={handleConnectWallet}
-              className="bg-gradient-to-r from-gradient-start to-gradient-end text-white"
-            >
-              <Wallet className="w-3 h-3 mr-2" />
-              Connect Wallet
-            </Button>
-          )}
+          <WalletButton />
         </div>
       </div>
     </nav>
