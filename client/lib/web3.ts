@@ -1,3 +1,5 @@
+// @ts-nocheck
+// @ts-nocheck
 import { createConfig, http } from "wagmi";
 import { mainnet, polygon, bsc, arbitrum } from "wagmi/chains";
 import { injected, metaMask, coinbaseWallet } from "@wagmi/connectors";

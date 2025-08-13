@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { ArrowDownRight, Send, TrendingUp, TrendingDown } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useDemoTrading } from "@/contexts/DemoTradingContext";

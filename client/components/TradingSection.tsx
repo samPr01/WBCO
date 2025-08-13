@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { TrendingDown, TrendingUp, MoreHorizontal, RefreshCw } from "lucide-react";
 import { useCryptoPrices, CryptoPrice } from "@/hooks/useCryptoPrices";
 

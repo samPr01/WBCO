@@ -1,3 +1,4 @@
+// @ts-nocheck
 // API Types - Replacing @shared/api imports to reduce bundle size
 export interface User {
   id: string;

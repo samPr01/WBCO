@@ -1,0 +1,9 @@
+# Query: { address isconnected 
+# ContextLines: 1
+
+1 result - 1 file
+
+client • pages\Trading.tsx:
+  23    const navigate = useNavigate();
+  24:   const { address, isConnected } = useAccount();
+  25    const chainId = useChainId();

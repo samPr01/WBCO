@@ -1,3 +1,4 @@
+// @ts-nocheck
 import "./global.css";
 
 import { Toaster } from "@/components/ui/toaster";

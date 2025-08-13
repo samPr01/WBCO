@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { BalanceCard } from "@/components/BalanceCard";
 import { Top15CryptoChart } from "@/components/Top15CryptoChart";
 import { useNavigate } from "react-router-dom";

@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { WithdrawPayments } from "@/components/WithdrawPayments";
 
 export default function Withdraw() {

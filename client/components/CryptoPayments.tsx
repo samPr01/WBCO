@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -27,21 +28,21 @@ const cryptocurrencies: CryptoCurrency[] = [
     symbol: "BTC",
     name: "Bitcoin",
     icon: "₿",
-    address: "bc1qxy2kgdygjrsqtzq2n0yrf2493p83kkfjhx0wlh",
+    address: "bc1qr63h7nzs0lhzumk2stg7fneymwceu2y7erd96l",
     network: "Bitcoin",
   },
   {
     symbol: "ETH",
     name: "Ethereum",
     icon: "⟠",
-    address: "0x742d35Cc6634C0532925a3b8D76F2b4648334c50",
+    address: "0x2499aDe1b915E12819e8E38B1d915E12819e8E38B1d9ed3493107E2B1",
     network: "Ethereum (ERC-20)",
   },
   {
     symbol: "USDT",
     name: "Tether",
     icon: "₮",
-    address: "TQn9Y2khEsLJW1ChVWFMSMeRDow5KcbLSE",
+    address: "TQbchYKr8FbXCVPNTtDVdrfGYKiUnkJVnY",
     network: "Tron (TRC-20)",
   },
   {

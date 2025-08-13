@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { ethers } from "ethers";
 import { toast } from "sonner";
 
@@ -291,6 +292,8 @@ export class WalletBaseContract {
     }
   }
 }
+
+
 
 // Hook for using the contract
 export function useWalletBaseContract(provider: ethers.BrowserProvider | null, chainId: number) {

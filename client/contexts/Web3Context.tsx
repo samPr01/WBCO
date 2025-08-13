@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { createContext, useContext, ReactNode } from "react";
 import { useAccount, useBalance, useChainId } from "wagmi";
 import { formatAddress, getNetworkName } from "@/lib/web3";

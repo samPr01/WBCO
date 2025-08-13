@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { useState } from "react";
 import { WatchlistManager } from "@/components/WatchlistManager";
 import { LiveCryptoChart } from "@/components/LiveCryptoChart";

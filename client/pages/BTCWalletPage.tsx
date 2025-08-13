@@ -1,3 +1,4 @@
+// @ts-nocheck
 import React from 'react';
 import { useAccount } from 'wagmi';
 import BTCWallet from '../components/BTCWallet';

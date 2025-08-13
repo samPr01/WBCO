@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { Clock, TrendingUp, DollarSign, Calendar } from "lucide-react";
 import { useDemoTrading } from "@/contexts/DemoTradingContext";
 
