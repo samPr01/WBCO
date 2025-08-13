@@ -1,6 +1,7 @@
 // @ts-nocheck
 import { BalanceCard } from "@/components/BalanceCard";
 import { Top15CryptoChart } from "@/components/Top15CryptoChart";
+import { LiveCoinWatchWidget } from "@/components/LiveCoinWatchWidget";
 import { useNavigate } from "react-router-dom";
 
 export default function Index() {
@@ -25,6 +26,15 @@ export default function Index() {
       </div>
 
       <BalanceCard />
+
+      {/* Live Coin Watch Widget */}
+      <div className="bg-card rounded-xl p-6 border border-border">
+        <h3 className="font-semibold mb-4">Live Crypto Charts</h3>
+        <p className="text-muted-foreground mb-4">
+          Real-time cryptocurrency prices and market data
+        </p>
+        <LiveCoinWatchWidget />
+      </div>
 
       <Top15CryptoChart />
 

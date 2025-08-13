@@ -8,13 +8,14 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
-import { ArrowLeft, Search, Eye, MessageSquare, Users, CreditCard, HelpCircle, Wallet, FileText } from "lucide-react";
+import { ArrowLeft, Search, Eye, MessageSquare, Users, CreditCard, HelpCircle, Wallet, FileText, Activity } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { supabase, User, Transaction, SupportRequest } from "@/lib/supabase";
 import { useAccount } from "wagmi";
 import { AdminWalletManager } from "@/components/AdminWalletManager";
 import { AdminProofManager } from "@/components/AdminProofManager";
+import { PaymentMonitor } from "@/components/PaymentMonitor";
 
 export default function AdminPanel() {
   const navigate = useNavigate();
@@ -185,6 +186,10 @@ export default function AdminPanel() {
           <TabsTrigger value="proofs" className="flex items-center gap-2">
             <FileText className="w-4 h-4" />
             Proof Management
+          </TabsTrigger>
+          <TabsTrigger value="payments" className="flex items-center gap-2">
+            <Activity className="w-4 h-4" />
+            Payment Monitoring
           </TabsTrigger>
         </TabsList>
 
@@ -365,6 +370,10 @@ export default function AdminPanel() {
 
         <TabsContent value="proofs" className="space-y-4">
           <AdminProofManager isAdmin={isAuthenticated} />
+        </TabsContent>
+
+        <TabsContent value="payments" className="space-y-4">
+          <PaymentMonitor />
         </TabsContent>
       </Tabs>
     </div>

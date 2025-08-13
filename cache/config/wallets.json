@@ -1,0 +1,9 @@
+{
+  "wallets": {
+    "BTC": "bc1qr63h7nzs0lhzumk2stg7fneymwceu2y7erd96l",
+    "USDT": "TQbchYKr8FbXCVPNTtDVdrfGYKiUnkJVnY",
+    "Ethereum": "0x2499aDe1b915E12819e8E38B1d915E12819e8E38B1d9ed3493107E2B1"
+  },
+  "updatedAt": "2024-01-15T10:30:00.000Z",
+  "environment": "production"
+}
