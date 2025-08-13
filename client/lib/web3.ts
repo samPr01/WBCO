@@ -1,24 +1,36 @@
 // @ts-nocheck
-// @ts-nocheck
-import { createConfig, http } from "wagmi";
+import { createConfig, configureChains } from "wagmi";
 import { mainnet, polygon, bsc, arbitrum } from "wagmi/chains";
-import { injected, metaMask, coinbaseWallet } from "@wagmi/connectors";
+import { publicProvider } from "wagmi/providers/public";
+import { MetaMaskConnector } from "wagmi/connectors/metaMask";
+import { CoinbaseWalletConnector } from "wagmi/connectors/coinbaseWallet";
+import { InjectedConnector } from "wagmi/connectors/injected";
+
+const { chains, publicClient, webSocketPublicClient } = configureChains(
+  [mainnet, polygon, bsc, arbitrum],
+  [publicProvider()]
+);
 
 export const config = createConfig({
-  chains: [mainnet, polygon, bsc, arbitrum],
+  autoConnect: true,
+  publicClient,
+  webSocketPublicClient,
   connectors: [
-    injected(),
-    metaMask(),
-    coinbaseWallet({
-      appName: "WalletBase",
+    new MetaMaskConnector({ chains }),
+    new CoinbaseWalletConnector({
+      chains,
+      options: {
+        appName: "WalletBase",
+      },
+    }),
+    new InjectedConnector({
+      chains,
+      options: {
+        name: "Injected",
+        shimDisconnect: true,
+      },
     }),
   ],
-  transports: {
-    [mainnet.id]: http(),
-    [polygon.id]: http(),
-    [bsc.id]: http(),
-    [arbitrum.id]: http(),
-  },
 });
 
 // Supported wallet types
